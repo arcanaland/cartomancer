@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/arcanaland/cartomancer/internal/card"
 	"github.com/arcanaland/cartomancer/internal/deck"
@@ -116,6 +115,30 @@ func loadAnsiArt(path string) (string, error) {
 	return string(data), nil
 }
 
+// getSuitSymbol returns a symbol for a suit
+func getSuitSymbol(suit string) string {
+	switch suit {
+	case "wands":
+		return "🔥" // Fire symbol
+	case "cups":
+		return "💧" // Water symbol
+	case "swords":
+		return "💨" // Air symbol
+	case "pentacles":
+		return "🌍" // Earth symbol
+	default:
+		return "•"
+	}
+}
+
+// getArcanaSymbol returns a symbol for the arcana type
+func getArcanaSymbol(isMinor bool) string {
+	if isMinor {
+		return "♢" // Diamond for minor arcana
+	}
+	return "★" // Star for major arcana
+}
+
 // displayCard displays the card information with ANSI art
 func displayCard(c *card.Card, ansiArt, deckName string) {
 	// Clear the screen
@@ -132,20 +155,31 @@ func displayCard(c *card.Card, ansiArt, deckName string) {
 		}
 	}
 
-	// Get terminal width
-	//termWidth := 80 // Default terminal width
-
 	// Prepare the info lines
 	var infoLines []string
-	infoLines = append(infoLines, color.CyanString("Card: ")+color.HiWhiteString(c.Name))
+
+	// Get symbols
+	var arcanaSymbol, suitSymbol string
+	isMinor := c.Type == "minor_arcana"
+
+	arcanaSymbol = getArcanaSymbol(isMinor)
+	if isMinor {
+		suitSymbol = getSuitSymbol(c.Suit)
+	}
+
+	infoLines = append(infoLines, color.CyanString("Card: ")+color.HiWhiteString("%s", c.Name))
+
 	infoLines = append(infoLines, color.CyanString("Deck: ")+color.HiWhiteString(deckName))
 	infoLines = append(infoLines, color.CyanString("ID: ")+color.HiWhiteString(c.ID))
 
 	if c.Type == "major_arcana" {
-		infoLines = append(infoLines, color.CyanString("Type: ")+color.HiWhiteString("Major Arcana"))
+		infoLines = append(infoLines, color.CyanString("Type: ")+
+			color.HiWhiteString("%s Major Arcana", arcanaSymbol))
 	} else {
-		infoLines = append(infoLines, color.CyanString("Type: ")+color.HiWhiteString("Minor Arcana"))
-		infoLines = append(infoLines, color.CyanString("Suit: ")+color.HiWhiteString(c.Suit))
+		infoLines = append(infoLines, color.CyanString("Type: ")+
+			color.HiWhiteString("%s Minor Arcana", arcanaSymbol))
+		infoLines = append(infoLines, color.CyanString("Suit: ")+
+			color.HiWhiteString("%s %s", suitSymbol, c.Suit))
 		infoLines = append(infoLines, color.CyanString("Rank: ")+color.HiWhiteString(c.Rank))
 	}
 
@@ -154,12 +188,6 @@ func displayCard(c *card.Card, ansiArt, deckName string) {
 		infoLines = append(infoLines, color.CyanString("Description:"))
 		infoLines = append(infoLines, c.AltText)
 	}
-
-	// Add timestamp - using a dim gray color instead of DimString
-	dimColor := color.New(color.FgHiBlack).SprintFunc()
-	infoLines = append(infoLines, "")
-	infoLines = append(infoLines, dimColor(fmt.Sprintf("Generated: %s", time.Now().Format("2006-01-02 15:04:05"))))
-	infoLines = append(infoLines, dimColor(fmt.Sprintf("User: %s", getUsername())))
 
 	// Calculate layout
 	// We'll display the ANSI art on the left and info on the right
@@ -217,20 +245,4 @@ func max(a, b int) int {
 		return a
 	}
 	return b
-}
-
-// getUsername gets the current username
-func getUsername() string {
-	// Try to get username from environment variables
-	username := os.Getenv("USER")
-	if username == "" {
-		username = os.Getenv("USERNAME") // For Windows
-	}
-
-	// Fallback to a default if no username found
-	if username == "" {
-		username = "user"
-	}
-
-	return username
 }

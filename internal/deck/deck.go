@@ -130,7 +130,15 @@ func (d *Deck) loadCardInfo() error {
 		}
 	}
 
-	// Decode language file
+	// First read the raw TOML file to get the complete structure
+	var rawData map[string]interface{}
+	_, err := toml.DecodeFile(enTomlPath, &rawData)
+	if err != nil {
+		d.setDefaultNames()
+		return fmt.Errorf("error parsing language file: %v", err)
+	}
+
+	// Decode language file for standard sections
 	var langConfig NameConfig
 	if _, err := toml.DecodeFile(enTomlPath, &langConfig); err != nil {
 		// Error parsing language file, use default names
@@ -138,19 +146,11 @@ func (d *Deck) loadCardInfo() error {
 		return fmt.Errorf("error parsing language file: %v", err)
 	}
 
-	// Set names and alt text from language file
+	// Set names from language file
 	if langConfig.MajorArcana != nil {
 		for num, name := range langConfig.MajorArcana {
 			if card, ok := d.MajorArcana[num]; ok {
 				card.Name = name
-			}
-		}
-
-		if langConfig.MajorArcanaAltText != nil {
-			for num, altText := range langConfig.MajorArcanaAltText {
-				if card, ok := d.MajorArcana[num]; ok {
-					card.AltText = altText
-				}
 			}
 		}
 	}
@@ -165,13 +165,32 @@ func (d *Deck) loadCardInfo() error {
 				}
 			}
 		}
+	}
 
-		if langConfig.MinorArcanaAltText != nil {
-			for suit, ranks := range langConfig.MinorArcanaAltText {
-				if suitMap, ok := d.MinorArcana[suit]; ok {
-					for rank, altText := range ranks {
-						if card, ok := suitMap[rank]; ok {
-							card.AltText = altText
+	// Check if alt_text section exists in the raw data
+	if altTextData, ok := rawData["alt_text"].(map[string]interface{}); ok {
+		// Major arcana alt text
+		if majorArcanaAltText, ok := altTextData["major_arcana"].(map[string]interface{}); ok {
+			for numStr, altTextVal := range majorArcanaAltText {
+				if altText, ok := altTextVal.(string); ok {
+					if card, ok := d.MajorArcana[numStr]; ok {
+						card.AltText = altText
+					}
+				}
+			}
+		}
+
+		// Minor arcana alt text
+		if minorArcanaAltText, ok := altTextData["minor_arcana"].(map[string]interface{}); ok {
+			for suitStr, ranksVal := range minorArcanaAltText {
+				if ranks, ok := ranksVal.(map[string]interface{}); ok {
+					if suitMap, ok := d.MinorArcana[suitStr]; ok {
+						for rankStr, altTextVal := range ranks {
+							if altText, ok := altTextVal.(string); ok {
+								if card, ok := suitMap[rankStr]; ok {
+									card.AltText = altText
+								}
+							}
 						}
 					}
 				}
@@ -378,8 +397,11 @@ type VariantSection struct {
 
 // Name configuration structures
 type NameConfig struct {
-	MajorArcana        map[string]string            `toml:"major_arcana"`
-	MajorArcanaAltText map[string]string            `toml:"major_arcana.alt_text"`
-	MinorArcana        map[string]map[string]string `toml:"minor_arcana"`
-	MinorArcanaAltText map[string]map[string]string `toml:"minor_arcana.alt_text"`
+	Metadata    *MetadataSection             `toml:"metadata"`
+	MajorArcana map[string]string            `toml:"major_arcana"`
+	MinorArcana map[string]map[string]string `toml:"minor_arcana"`
+}
+
+type MetadataSection struct {
+	AltTextAttribution string `toml:"alt_text_attribution"`
 }
