@@ -1,0 +1,37 @@
+version: 2
+project_name: cartomancer
+builds:
+  - env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+    flags:
+      - -trimpath
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+    dir: ./src
+    binary: cartomancer-linux-amd64
+
+archives: []
+
+release:
+  github:
+    owner: arcanaland
+    name: cartomancer
+  draft: false
+  prerelease: false
+  name_template: "{{ .ProjectName }}-v{{ .Version }}"
+  extra_files:
+    - glob: "./**/cartomancer-linux-amd64"
+
+checksum:
+  name_template: "{{ .ProjectName }}_{{ .Version }}_checksums.txt"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^chore:"
+      - "^test:"
