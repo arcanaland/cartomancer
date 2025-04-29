@@ -27,25 +27,16 @@ func NewValidator(deckPath string) *Validator {
 }
 
 func (v *Validator) Validate() (ValidationResults, error) {
-	// Check if deck.toml exists
 	if err := v.validateDeckToml(); err != nil {
 		return v.Results, err
 	}
 
-	// Validate directory structure
 	v.validateDirectoryStructure()
-
-	// Validate card backs
 	v.validateCardBacks()
-
-	// Validate major arcana
 	v.validateMajorArcana()
-
-	// Validate minor arcana
 	v.validateMinorArcana()
-
-	// Validate names and localization
 	v.validateNames()
+	v.validateAnsiArt()
 
 	return v.Results, nil
 }
@@ -372,6 +363,94 @@ func (v *Validator) validateNames() {
 
 	if !foundValidLangFile {
 		v.Results.Errors = append(v.Results.Errors, "no valid language files found in names directory")
+	}
+}
+
+func (v *Validator) validateAnsiArt() {
+	// Find ANSI directories (ansi32, ansi256, etc.)
+	entries, err := os.ReadDir(v.DeckPath)
+	if err != nil {
+		v.Results.Errors = append(v.Results.Errors,
+			fmt.Sprintf("error reading deck directory: %v", err))
+		return
+	}
+
+	foundAnsiDir := false
+	for _, entry := range entries {
+		if entry.IsDir() && strings.HasPrefix(entry.Name(), "ansi") {
+			foundAnsiDir = true
+			ansiDir := filepath.Join(v.DeckPath, entry.Name())
+			v.validateAnsiDirectory(ansiDir, entry.Name())
+		}
+	}
+
+	if !foundAnsiDir {
+		v.Results.Warnings = append(v.Results.Warnings,
+			"no ANSI art directories found (ansi32/, ansi256/, etc.)")
+	}
+}
+
+// validateAnsiDirectory validates an ANSI art directory
+func (v *Validator) validateAnsiDirectory(ansiDir, dirName string) {
+	// Check for major_arcana directory
+	majorArcanaDir := filepath.Join(ansiDir, "major_arcana")
+	if _, err := os.Stat(majorArcanaDir); os.IsNotExist(err) {
+		v.Results.Warnings = append(v.Results.Warnings,
+			fmt.Sprintf("major_arcana directory not found in %s", dirName))
+	} else {
+		// Check for all 22 major arcana cards (00-21)
+		missingCards := []string{}
+		for i := 0; i <= 21; i++ {
+			cardName := fmt.Sprintf("%02d", i)
+			cardPath := filepath.Join(majorArcanaDir, cardName+".ansi")
+			if _, err := os.Stat(cardPath); os.IsNotExist(err) {
+				missingCards = append(missingCards, cardName)
+			}
+		}
+
+		if len(missingCards) > 0 {
+			v.Results.Warnings = append(v.Results.Warnings,
+				fmt.Sprintf("missing ANSI art for major arcana cards in %s: %s",
+					dirName, strings.Join(missingCards, ", ")))
+		}
+	}
+
+	// Check for minor_arcana directory
+	minorArcanaDir := filepath.Join(ansiDir, "minor_arcana")
+	if _, err := os.Stat(minorArcanaDir); os.IsNotExist(err) {
+		v.Results.Warnings = append(v.Results.Warnings,
+			fmt.Sprintf("minor_arcana directory not found in %s", dirName))
+	} else {
+		// Check for all four suits
+		suits := []string{"wands", "cups", "swords", "pentacles"}
+		cardRanks := []string{
+			"ace", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten",
+			"page", "knight", "queen", "king",
+		}
+
+		for _, suit := range suits {
+			suitDir := filepath.Join(minorArcanaDir, suit)
+			if _, err := os.Stat(suitDir); os.IsNotExist(err) {
+				v.Results.Warnings = append(v.Results.Warnings,
+					fmt.Sprintf("missing suit directory: %s in %s/minor_arcana", suit, dirName))
+				continue
+			}
+
+			// Check for all 14 cards in each suit
+			missingCards := []string{}
+			for _, rank := range cardRanks {
+				cardPath := filepath.Join(suitDir, rank+".ansi")
+				if _, err := os.Stat(cardPath); os.IsNotExist(err) {
+					missingCards = append(missingCards, rank)
+				}
+			}
+
+			if len(missingCards) > 0 {
+				v.Results.Warnings = append(v.Results.Warnings,
+					fmt.Sprintf("missing ANSI art for %s cards in %s: %s",
+						suit, dirName, strings.Join(missingCards, ", ")))
+			}
+		}
 	}
 }
 
