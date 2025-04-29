@@ -10,27 +10,54 @@ import (
 	"golang.org/x/term"
 
 	"github.com/arcanaland/cartomancer/internal/card"
+	"github.com/arcanaland/cartomancer/internal/config"
+
 	"github.com/arcanaland/cartomancer/internal/deck"
 	"github.com/fatih/color"
 	"github.com/spf13/cobra"
 )
 
-// showCmd represents the show command
 var showCmd = &cobra.Command{
-	Use:   "show [card_id] [deck_path]",
+	Use:   "show [card_id]",
 	Short: "Display information about a specific card with ANSI art",
 	Long: `Show displays detailed information about a tarot card with ANSI terminal art.
 Use canonical card IDs like 'major_arcana.00' or 'minor_arcana.wands.ace'.
-If deck_path is not specified, it will use the current directory.
 
-Example:
-  cartomancer show minor_arcana.wands.ace ./rider-waite-smith`,
-	Args: cobra.RangeArgs(1, 2),
+You can specify a deck using the --deck flag, which will look for the deck
+in your deck library (XDG_DATA_HOME/tarot/decks) or as a relative path.
+If no deck is specified, the default deck from your config will be used.
+
+Examples:
+  cartomancer show major_arcana.00
+  cartomancer show --deck rider-waite-smith minor_arcana.wands.ace
+  cartomancer show --deck ./custom-deck major_arcana.01`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cardID := args[0]
-		deckPath := "."
-		if len(args) > 1 {
-			deckPath = args[1]
+
+		// Get deck flag value
+		deckFlag, _ := cmd.Flags().GetString("deck")
+
+		var deckPath string
+		var err error
+
+		if deckFlag != "" {
+			// User specified a deck
+			deckPath, err = config.GetDeckPath(deckFlag)
+			if err != nil {
+				return err
+			}
+		} else {
+			// Use default deck from config
+			defaultDeck, err := config.GetDefaultDeck()
+			if err != nil {
+				return fmt.Errorf("error getting default deck: %v", err)
+			}
+
+			deckPath, err = config.GetDeckPath(defaultDeck)
+			if err != nil {
+				return fmt.Errorf("error loading default deck: %v", err)
+			}
 		}
 
 		// Check if path exists
@@ -70,6 +97,8 @@ Example:
 
 func init() {
 	RootCmd.AddCommand(showCmd)
+
+	showCmd.Flags().StringP("deck", "d", "", "Specify a deck from your deck library or a path to a deck")
 }
 
 // findAnsiFile finds the path to the ANSI art file for a card
