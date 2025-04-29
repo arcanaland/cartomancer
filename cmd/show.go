@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"golang.org/x/term"
+
 	"github.com/arcanaland/cartomancer/internal/card"
 	"github.com/arcanaland/cartomancer/internal/deck"
 	"github.com/fatih/color"
@@ -139,11 +141,46 @@ func getArcanaSymbol(isMinor bool) string {
 	return "★" // Star for major arcana
 }
 
+// wrapText wraps text to a specified width
+func wrapText(text string, width int) []string {
+	// Ensure width is reasonable
+	if width < 10 {
+		width = 40 // Use a sensible default if width is too small
+	}
+
+	var result []string
+	var currentLine string
+	words := strings.Fields(text)
+
+	if len(words) == 0 {
+		return []string{""}
+	}
+
+	for _, word := range words {
+		// Check if adding this word would exceed the width
+		if len(currentLine) == 0 {
+			// First word on the line, always add it
+			currentLine = word
+		} else if len(currentLine)+1+len(word) <= width {
+			// Word fits on current line with a space
+			currentLine += " " + word
+		} else {
+			// Word doesn't fit, start a new line
+			result = append(result, currentLine)
+			currentLine = word
+		}
+	}
+
+	// Add the last line if not empty
+	if currentLine != "" {
+		result = append(result, currentLine)
+	}
+
+	return result
+}
+
 // displayCard displays the card information with ANSI art
 func displayCard(c *card.Card, ansiArt, deckName string) {
-	// Clear the screen
-	fmt.Print("\033[H\033[2J")
-
 	// Split the ANSI art into lines
 	ansiLines := strings.Split(ansiArt, "\n")
 	maxAnsiWidth := 0
@@ -153,6 +190,12 @@ func displayCard(c *card.Card, ansiArt, deckName string) {
 		if visibleWidth > maxAnsiWidth {
 			maxAnsiWidth = visibleWidth
 		}
+	}
+
+	// Get terminal width
+	width, _, err := term.GetSize(int(os.Stdout.Fd()))
+	if err != nil || width <= 0 {
+		width = 80 // Default if we can't get terminal width
 	}
 
 	// Prepare the info lines
@@ -170,29 +213,38 @@ func displayCard(c *card.Card, ansiArt, deckName string) {
 	infoLines = append(infoLines, color.CyanString("Card: ")+color.HiWhiteString("%s", c.Name))
 
 	infoLines = append(infoLines, color.CyanString("Deck: ")+color.HiWhiteString(deckName))
-	infoLines = append(infoLines, color.CyanString("ID: ")+color.HiWhiteString(c.ID))
+	infoLines = append(infoLines, color.CyanString("ID:   ")+color.HiWhiteString(c.ID))
 
 	if c.Type == "major_arcana" {
 		infoLines = append(infoLines, color.CyanString("Type: ")+
-			color.HiWhiteString("%s Major Arcana", arcanaSymbol))
+			color.HiWhiteString("Major Arcana (%s )", arcanaSymbol))
 	} else {
 		infoLines = append(infoLines, color.CyanString("Type: ")+
-			color.HiWhiteString("%s Minor Arcana", arcanaSymbol))
+			color.HiWhiteString("Minor Arcana (%s)", arcanaSymbol))
 		infoLines = append(infoLines, color.CyanString("Suit: ")+
-			color.HiWhiteString("%s %s", suitSymbol, c.Suit))
+			color.HiWhiteString("%s (%s)", c.Suit, suitSymbol))
 		infoLines = append(infoLines, color.CyanString("Rank: ")+color.HiWhiteString(c.Rank))
-	}
-
-	if c.AltText != "" {
-		infoLines = append(infoLines, "")
-		infoLines = append(infoLines, color.CyanString("Description:"))
-		infoLines = append(infoLines, c.AltText)
 	}
 
 	// Calculate layout
 	// We'll display the ANSI art on the left and info on the right
 	spacing := 4
 	infoStartCol := maxAnsiWidth + spacing
+
+	// Calculate available width for text, ensuring it's at least 20 characters
+	infoWidth := width - infoStartCol - 2 // Leave a small margin
+	if infoWidth < 20 {
+		infoWidth = 20 // Minimum width for text
+	}
+
+	// Add description with word wrapping
+	if c.AltText != "" {
+		infoLines = append(infoLines, "")
+		infoLines = append(infoLines, color.CyanString("Description:"))
+		// Wrap the description text to fit in the available width
+		descLines := wrapText(c.AltText, infoWidth)
+		infoLines = append(infoLines, descLines...)
+	}
 
 	// Print the header
 	fmt.Println()
