@@ -1,6 +1,5 @@
 # Cartomancer
-
-![three-of-swords](https://github.com/user-attachments/assets/64adbc8f-8a7a-4e56-b61c-f19f21960190)
+![Screenshot_20250429_173405](https://github.com/user-attachments/assets/05059663-ebe1-413d-870c-bb504e2fd4b1)
 
 
 Cartomancer is a command-line tool for viewing, managing and creating tarot decks according to the [Tarot Deck Specification v1.0](https://github.com/arcanaland/tarot-spec).
