@@ -11,7 +11,7 @@ builds:
       - -trimpath
     ldflags:
       - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
-    dir: ./src
+    dir: .
     binary: cartomancer-linux-amd64
 
 archives: []
