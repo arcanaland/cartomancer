@@ -146,17 +146,16 @@ func loadAnsiArt(path string) (string, error) {
 	return string(data), nil
 }
 
-// getSuitSymbol returns a symbol for a suit
 func getSuitSymbol(suit string) string {
 	switch suit {
 	case "wands":
-		return "🔥" // Fire symbol
+		return ""
 	case "cups":
-		return "💧" // Water symbol
+		return ""
 	case "swords":
-		return "💨" // Air symbol
+		return "󰞇"
 	case "pentacles":
-		return "🌍" // Earth symbol
+		return "󱙧"
 	default:
 		return "•"
 	}
@@ -165,9 +164,9 @@ func getSuitSymbol(suit string) string {
 // getArcanaSymbol returns a symbol for the arcana type
 func getArcanaSymbol(isMinor bool) string {
 	if isMinor {
-		return "♢" // Diamond for minor arcana
+		return "󱀝"
 	}
-	return "★" // Star for major arcana
+	return ""
 }
 
 // wrapText wraps text to a specified width
@@ -246,12 +245,12 @@ func displayCard(c *card.Card, ansiArt, deckName string) {
 
 	if c.Type == "major_arcana" {
 		infoLines = append(infoLines, color.CyanString("Type: ")+
-			color.HiWhiteString("Major Arcana (%s )", arcanaSymbol))
+			color.HiWhiteString("Major Arcana · %s", arcanaSymbol))
 	} else {
 		infoLines = append(infoLines, color.CyanString("Type: ")+
-			color.HiWhiteString("Minor Arcana (%s)", arcanaSymbol))
+			color.HiWhiteString("Minor Arcana · %s", arcanaSymbol))
 		infoLines = append(infoLines, color.CyanString("Suit: ")+
-			color.HiWhiteString("%s (%s)", c.Suit, suitSymbol))
+			color.HiWhiteString("%s · %s", c.Suit, suitSymbol))
 		infoLines = append(infoLines, color.CyanString("Rank: ")+color.HiWhiteString(c.Rank))
 	}
 
@@ -281,6 +280,8 @@ func displayCard(c *card.Card, ansiArt, deckName string) {
 	// Print each line
 	maxLines := max(len(ansiLines), len(infoLines))
 	for i := 0; i < maxLines; i++ {
+		// Print 2-character wide left padding
+		fmt.Print("  ")
 		// Print ANSI art line if available
 		if i < len(ansiLines) {
 			fmt.Print(ansiLines[i])
