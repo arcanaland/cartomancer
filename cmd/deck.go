@@ -19,10 +19,14 @@ var deckCmd = &cobra.Command{
 
 // deckListCmd represents the deck list command
 var deckListCmd = &cobra.Command{
-	Use:   "list",
+	Use:   "ls",
 	Short: "List available decks in your deck library",
 	Run: func(cmd *cobra.Command, args []string) {
-		libraryPath := config.GetDeckLibraryPath()
+		libraryPath, err := filepath.EvalSymlinks(config.GetDeckLibraryPath())
+		if err != nil {
+			fmt.Printf("Error resolving symbolic link: %v\n", err)
+			return
+		}
 
 		// Check if deck library exists
 		if _, err := os.Stat(libraryPath); os.IsNotExist(err) {
@@ -52,8 +56,17 @@ var deckListCmd = &cobra.Command{
 		}
 
 		for _, entry := range entries {
-			if entry.IsDir() {
-				deckPath := filepath.Join(libraryPath, entry.Name())
+			// Resolve the symbolic link or regular entry
+			entryPath := filepath.Join(libraryPath, entry.Name())
+			fileInfo, err := os.Stat(entryPath)
+			if err != nil {
+				fmt.Printf("Error resolving entry %s: %v\n", entry.Name(), err)
+				continue
+			}
+
+			// Check if the resolved entry is a directory
+			if fileInfo.IsDir() {
+				deckPath := entryPath
 				d, err := deck.LoadDeck(deckPath)
 
 				if err != nil {
