@@ -47,6 +47,21 @@ func GetConfigFilePath() string {
 	return filepath.Join(GetXDGConfigHome(), "cartomancer", "config.toml")
 }
 
+// GetCacheDir returns the directory for caching generated ANSI art
+func GetCacheDir() string {
+	cacheDir := os.Getenv("XDG_CACHE_HOME")
+	if cacheDir == "" {
+		homeDir, err := os.UserHomeDir()
+		if err != nil {
+			// Fallback to a temporary directory if we can't determine home
+			return filepath.Join(os.TempDir(), "cartomancer")
+		}
+		cacheDir = filepath.Join(homeDir, ".cache")
+	}
+
+	return filepath.Join(cacheDir, "cartomancer")
+}
+
 // LoadConfig loads the config file
 func LoadConfig() (*Config, error) {
 	configPath := GetConfigFilePath()
