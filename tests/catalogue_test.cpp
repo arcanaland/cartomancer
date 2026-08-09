@@ -29,9 +29,7 @@ TEST_CASE("the flag --list-codes prints one line per catalogued rule", "[catalog
     REQUIRE(line_count(result.out) == arcana::rules().size());
 }
 
-TEST_CASE(
-    "the flag --list-codes reports the whole catalogue", "[catalogue]"
-)
+TEST_CASE("the flag --list-codes reports the whole catalogue", "[catalogue]")
 {
     auto const result = run_cli({"--list-codes"});
 

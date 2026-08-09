@@ -218,7 +218,9 @@ static_assert(
     subcommands_are_well_formed(), "a subcommand is undocumented, duplicated or dispatches nowhere"
 );
 
-static_assert(subcommands.size() == 2, "a command was added or removed without updating this assert");
+static_assert(
+    subcommands.size() == 2, "a command was added or removed without updating this assert"
+);
 
 [[nodiscard]] flag const* find_flag(std::string_view name) noexcept;
 
