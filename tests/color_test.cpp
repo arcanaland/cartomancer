@@ -1,16 +1,17 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-#include "color.hpp"
+#include "cli/color.hpp"
 
-#include "cli.hpp"
+#include "cli/parse.hpp"
 
 #include <catch2/catch_test_macros.hpp>
 
 #include <string_view>
 #include <vector>
 
-using namespace cartomancer;  // NOLINT(google-build-using-namespace)
+using namespace cartomancer;       // NOLINT(google-build-using-namespace)
+using namespace cartomancer::cli;  // NOLINT(google-build-using-namespace)
 
 namespace
 {

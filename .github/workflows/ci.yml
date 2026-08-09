@@ -20,9 +20,6 @@ jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      # Both repos are checked out as siblings inside the workspace, because
-      # actions/checkout cannot write above it and scripts/podman-shim.sh looks
-      # for the arcana prefix at ../libarcana by default.
       - uses: actions/checkout@v4
         with:
           path: cartomancer
@@ -47,9 +44,7 @@ jobs:
           restore-keys: |
             conan-
 
-      # libarcana ships no consumable Conan package, so we consume a staged
-      # install prefix instead. Replace this with a `requires` the day a real
-      # `arcana` recipe exists -- libarcana's RFC-019.
+      # TODO: replace this with conan package for arcana once it lands
       - name: Stage the arcana install prefix
         working-directory: libarcana
         run: |

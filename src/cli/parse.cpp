@@ -1,19 +1,18 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-#include "cli.hpp"
+#include "parse.hpp"
 
 #include <format>
 #include <utility>
 
-namespace cartomancer
+namespace cartomancer::cli
 {
 
 namespace
 {
 
-// One argument, split on the first '=' so that `--level=error` and
-// `--level error` are the same flag.
+// One argument split on the first =
 struct token
 {
     std::string_view name;
@@ -63,7 +62,7 @@ struct token
     return std::nullopt;
 }
 
-// Walks the argument list, handing out the value that belongs to a flag.
+// Walks the argument list
 class cursor
 {
   public:
@@ -79,7 +78,7 @@ class cursor
         return args_[index_++];
     }
 
-    // The value for `flag`: whatever followed '=', else the next argument.
+    // The value for flag
     //
     // @return std::nullopt when the flag is at the end with nothing after it.
     [[nodiscard]] std::optional<std::string_view> value_for(token const& flag)
@@ -112,7 +111,6 @@ class cursor
            flag == "--color";
 }
 
-// State the flag loop threads through, beyond the options themselves.
 struct parse_state
 {
     bool color_set = false;
@@ -151,7 +149,7 @@ struct parse_state
     return false;
 }
 
-// Handle a flag that takes a value, given that value.
+// Handle a flag that takes a value
 //
 // @return an error message when the value is not one this flag accepts.
 [[nodiscard]] std::optional<std::string> apply_valued(
@@ -211,8 +209,7 @@ struct parse_state
     if (apply_toggle(flag, opts, state))
         return std::nullopt;
 
-    // Reject before consuming: an unknown flag must not swallow the argument
-    // that follows it.
+    // Reject before consuming
     if (!takes_value(flag.name))
         return std::format("unknown flag: {}", flag.name);
 
@@ -273,8 +270,6 @@ parse_result parse(std::span<std::string_view const> args)
             return {.opts = opts, .error = std::move(failure)};
     }
 
-    // Two deck selectors mean a wrong belief about one of them, so this is a
-    // usage error rather than a silent precedence win. ADR-009.
     if (opts.deck.has_value() && opts.target.has_value())
         return {
             .opts = opts,
@@ -286,59 +281,4 @@ parse_result parse(std::span<std::string_view const> args)
     return {.opts = opts, .error = std::nullopt};
 }
 
-std::string_view severity_name(arcana::severity level) noexcept
-{
-    switch (level)
-    {
-        case arcana::severity::pedantic:
-            return "pedantic";
-        case arcana::severity::info:
-            return "info";
-        case arcana::severity::warning:
-            return "warning";
-        case arcana::severity::error:
-            return "error";
-    }
-    return "unknown";
-}
-
-std::string_view usage_text() noexcept
-{
-    return R"(cartomancer - swiss-army knife for tarot decks
-
-Usage:
-  cartomancer <command> [flags] [TARGET]
-
-Commands:
-  validate [TARGET]   judge a deck against the tarot deck spec
-  list                list the decks installed on this system
-
-Validate flags:
-  --format text|json                  output format (default text)
-  --level pedantic|info|warning|error  report and exit on this floor (default info)
-  --explain CODE                      print one catalogue entry and exit
-  --list-codes                        print the whole catalogue and exit
-
-List flags:
-  --format text|json                  output format (default text)
-
-Global flags:
-  --deck NAME         act on a discovered deck by directory name
-  --color WHEN        auto|always|never|256|truecolor (default auto)
-  --no-color          alias for --color=never
-  --version           print the cartomancer and libarcana versions
-  --help              print this text
-
-TARGET is a deck directory, or a discovered deck's directory name. Passing
-both --deck and TARGET is a usage error.
-
-Exit codes:
-  0  no diagnostics at or above --level
-  1  warnings at or above --level, and no errors
-  2  at least one error diagnostic
-  3  the deck could not be loaded at all
-  4  usage error
-)";
-}
-
-}  // namespace cartomancer
+}  // namespace cartomancer::cli

@@ -11,6 +11,7 @@
 #include <vector>
 
 using namespace cartomancer;           // NOLINT(google-build-using-namespace)
+using namespace cartomancer::cli;      // NOLINT(google-build-using-namespace)
 using namespace cartomancer::testing;  // NOLINT(google-build-using-namespace)
 
 namespace

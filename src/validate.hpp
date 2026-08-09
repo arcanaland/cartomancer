@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "app.hpp"
-#include "cli.hpp"
+#include "cli/options.hpp"
+#include "cli/streams.hpp"
 
 #include <arcana/library.hpp>
 #include <arcana/validation.hpp>
@@ -20,7 +20,7 @@ namespace cartomancer
 // Exits 0/1/2 by the worst diagnostic left after the --level floor, or 3 when
 // the deck could not be loaded at all.
 [[nodiscard]] int run_validate(
-    options const& opts, arcana::deck_library const& library, streams sink
+    cli::options const& opts, arcana::deck_library const& library, cli::streams sink
 );
 
 // The diagnostics at or above `floor`.
@@ -33,6 +33,6 @@ namespace cartomancer
 );
 
 // The exit code for an already-filtered diagnostic list.
-[[nodiscard]] exit_code code_for(std::span<arcana::diagnostic const> reported) noexcept;
+[[nodiscard]] cli::exit_code code_for(std::span<arcana::diagnostic const> reported) noexcept;
 
 }  // namespace cartomancer

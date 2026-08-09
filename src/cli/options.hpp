@@ -1,6 +1,9 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
+// The shape of a parsed command line. Kept apart from the parser so a command
+// can take `options` without pulling in the argument walker.
+
 #pragma once
 
 #include "color.hpp"
@@ -9,20 +12,17 @@
 
 #include <cstdint>
 #include <optional>
-#include <span>
 #include <string>
-#include <string_view>
 
-namespace cartomancer
+namespace cartomancer::cli
 {
 
-// ADR-009's exit-code contract. Every value here is API: org CI gates on it.
 enum class exit_code : std::uint8_t
 {
     // No diagnostics at or above --level.
     ok = 0,
 
-    // Warnings at or above --level, and no errors.
+    // Warnings at or above --level and no errors.
     warnings = 1,
 
     // At least one error diagnostic.
@@ -31,7 +31,7 @@ enum class exit_code : std::uint8_t
     // The deck could not be loaded at all.
     unloadable = 3,
 
-    // Usage error: unknown flag or subcommand, or two deck selectors.
+    // Usage error
     usage = 4,
 };
 
@@ -48,13 +48,12 @@ enum class output_format : std::uint8_t
 
 enum class command : std::uint8_t
 {
-    // No subcommand given: print help.
     none,
     validate,
     list,
 };
 
-// A parsed command line, or the usage error that stopped it being one.
+// A parsed command line
 struct options
 {
     command which = command::none;
@@ -68,7 +67,7 @@ struct options
 
     output_format format = output_format::text;
 
-    // The --level floor, applied CLI-side. arcana::validate always runs
+    // The --level floor
     // everything; we filter its result.
     arcana::severity level = arcana::severity::info;
 
@@ -79,27 +78,11 @@ struct options
 
     color_mode color = color_mode::automatic;
 
-    // Whether --color or --no-color was actually given. An explicit flag beats
-    // the ambient NO_COLOR.
+    // Whether --color or --no-color was actually given.
     bool color_explicit = false;
 
     bool help = false;
     bool version = false;
 };
 
-struct parse_result
-{
-    options opts;
-
-    // Set when the command line is not valid. `run` prints it and exits 4.
-    std::optional<std::string> error;
-};
-
-[[nodiscard]] parse_result parse(std::span<std::string_view const> args);
-
-[[nodiscard]] std::string_view severity_name(arcana::severity level) noexcept;
-
-// The --help text, also printed for a bare `cartomancer`.
-[[nodiscard]] std::string_view usage_text() noexcept;
-
-}  // namespace cartomancer
+}  // namespace cartomancer::cli

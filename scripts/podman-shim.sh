@@ -7,14 +7,11 @@ set -euo pipefail
 image="${CARTOMANCER_IMAGE:-cartomancer-builder}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# libarcana installs no consumable Conan package, so we mount a staged install
-# prefix instead. It lives outside this repo, hence the second mount. The
-# container path must agree with CMAKE_PREFIX_PATH in the justfile.
+# TODO: replace when we get conan set up
 arcana_prefix="${ARCANA_PREFIX:-$root/../libarcana/build/RelWithDebInfo/stage/usr/local}"
 
 if [ ! -d "$arcana_prefix/lib/cmake/arcana" ]; then
   echo "no arcana install prefix at: $arcana_prefix" >&2
-  echo "run \`just install\` in libarcana, or set ARCANA_PREFIX." >&2
   exit 1
 fi
 

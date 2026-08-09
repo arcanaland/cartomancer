@@ -3,6 +3,7 @@
 
 #include "catalogue.hpp"
 
+#include "cli/text.hpp"
 #include "json.hpp"
 
 #include <arcana/validation.hpp>
@@ -34,16 +35,15 @@ namespace
 {
     if (entry.applies_to.min == entry.applies_to.max)
         return std::format("{}", entry.applies_to.min);
+
     return std::format("{}-{}", entry.applies_to.min, entry.applies_to.max);
 }
 
-// `explain` emits this and appends "explanation"; --list-codes emits it alone.
-// Keep them one function so the shared fields cannot drift apart.
 [[nodiscard]] json::document rule_json(arcana::rule const& entry)
 {
     return json::document{
         {"code", json::from_view(entry.code)},
-        {"default_level", json::from_view(severity_name(entry.default_level))},
+        {"default_level", json::from_view(cli::severity_name(entry.default_level))},
         {"area", json::from_view(entry.area)},
         {"needs", json::from_view(phase_name(entry.needs))},
         {"spec_ref", json::from_view(entry.spec_ref)},
@@ -54,53 +54,51 @@ namespace
 
 }  // namespace
 
-int run_list_codes(options const& opts, streams sink)
+int run_list_codes(cli::options const& opts, cli::streams sink)
 {
     auto const catalogue = arcana::rules();
 
-    if (opts.format == output_format::json)
+    if (opts.format == cli::output_format::json)
     {
         auto rules = json::document::array();
         for (auto const& entry : catalogue) rules.push_back(rule_json(entry));
 
         json::write(sink.out, json::document{{"rules", std::move(rules)}});
-        return to_int(exit_code::ok);
+        return cli::to_int(cli::exit_code::ok);
     }
 
-    // One rule per line, so `--list-codes | wc -l` reconciles with
-    // rules().size() -- which is what the acceptance criterion checks, rather
-    // than a literal 87 that goes stale when the spec grows.
     for (auto const& entry : catalogue)
     {
         sink.out << std::format(
-            "{}\t{}\t{}\t{}\t{}{}\n", entry.code, severity_name(entry.default_level), entry.area,
-            phase_name(entry.needs), applies_to(entry), entry.experimental ? "\texperimental" : ""
+            "{}\t{}\t{}\t{}\t{}{}\n", entry.code, cli::severity_name(entry.default_level),
+            entry.area, phase_name(entry.needs), applies_to(entry),
+            entry.experimental ? "\texperimental" : ""
         );
     }
 
-    return to_int(exit_code::ok);
+    return cli::to_int(cli::exit_code::ok);
 }
 
-int run_explain(options const& opts, std::string_view code, streams sink)
+int run_explain(cli::options const& opts, std::string_view code, cli::streams sink)
 {
     auto const* entry = arcana::find_rule(code);
 
     if (entry == nullptr)
     {
         sink.err << std::format("no such diagnostic code: {}\n", code);
-        return to_int(exit_code::usage);
+        return cli::to_int(cli::exit_code::usage);
     }
 
-    if (opts.format == output_format::json)
+    if (opts.format == cli::output_format::json)
     {
         auto document = rule_json(*entry);
         document["explanation"] = json::from_view(entry->explanation);
 
         json::write(sink.out, document);
-        return to_int(exit_code::ok);
+        return cli::to_int(cli::exit_code::ok);
     }
 
-    sink.out << std::format("{} ({})\n\n", entry->code, severity_name(entry->default_level));
+    sink.out << std::format("{} ({})\n\n", entry->code, cli::severity_name(entry->default_level));
     sink.out << std::format("{}\n\n", entry->explanation);
     sink.out << std::format("area:         {}\n", entry->area);
     sink.out << std::format("needs:        {}\n", phase_name(entry->needs));
@@ -109,7 +107,7 @@ int run_explain(options const& opts, std::string_view code, streams sink)
     if (entry->experimental)
         sink.out << "experimental: yes\n";
 
-    return to_int(exit_code::ok);
+    return cli::to_int(cli::exit_code::ok);
 }
 
 }  // namespace cartomancer

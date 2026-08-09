@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-#include "cli.hpp"
+#include "cli/parse.hpp"
 
 #include "harness.hpp"
 
@@ -12,6 +12,7 @@
 #include <string_view>
 
 using namespace cartomancer;           // NOLINT(google-build-using-namespace)
+using namespace cartomancer::cli;      // NOLINT(google-build-using-namespace)
 using namespace cartomancer::testing;  // NOLINT(google-build-using-namespace)
 
 namespace

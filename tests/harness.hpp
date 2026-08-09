@@ -50,7 +50,7 @@ struct invocation
     arcana::library_options options;
     options.roots = {library_root()};
 
-    streams sink{.out = out, .err = err, .colored = false};
+    cli::streams sink{.out = out, .err = err, .colored = false};
     int const status = run_with_library(argv, std::move(options), sink);
 
     return {.status = status, .out = out.str(), .err = err.str()};
@@ -67,7 +67,7 @@ struct invocation
     arcana::library_options options;
     options.roots = {library_root()};
 
-    streams sink{.out = out, .err = err, .colored = true};
+    cli::streams sink{.out = out, .err = err, .colored = true};
     int const status = run_with_library(argv, std::move(options), sink);
 
     return {.status = status, .out = out.str(), .err = err.str()};

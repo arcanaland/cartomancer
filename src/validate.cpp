@@ -3,6 +3,8 @@
 
 #include "validate.hpp"
 
+#include "cli/color.hpp"
+#include "cli/text.hpp"
 #include "json.hpp"
 
 #include <algorithm>
@@ -81,7 +83,7 @@ struct resolution
 // ADR-009's order is --deck NAME, then positional TARGET. A TARGET that exists
 // on disk is loaded directly; anything else is a directory name to look up.
 // `validate` with neither selector means the current directory.
-[[nodiscard]] resolution resolve(arcana::deck_library const& library, options const& opts)
+[[nodiscard]] resolution resolve(arcana::deck_library const& library, cli::options const& opts)
 {
     if (opts.deck.has_value())
         return resolve_by_name(library, *opts.deck);
@@ -125,7 +127,9 @@ using tally = std::array<std::size_t, 4>;
     return counts.at(static_cast<std::size_t>(level));
 }
 
-void write_text(resolution const& what, std::span<arcana::diagnostic const> reported, streams sink)
+void write_text(
+    resolution const& what, std::span<arcana::diagnostic const> reported, cli::streams sink
+)
 {
     bool const colored = sink.colored;
 
@@ -133,8 +137,8 @@ void write_text(resolution const& what, std::span<arcana::diagnostic const> repo
     {
         auto const where = location_of(found);
         sink.out << std::format(
-            "{}{}{}: {}: {}{}\n", severity_color(found.level, colored), severity_name(found.level),
-            color_reset(colored), found.code, found.message,
+            "{}{}{}: {}: {}{}\n", cli::severity_color(found.level, colored),
+            cli::severity_name(found.level), cli::color_reset(colored), found.code, found.message,
             where.empty() ? std::string{} : std::format(" ({})", where)
         );
     }
@@ -149,7 +153,7 @@ void write_text(resolution const& what, std::span<arcana::diagnostic const> repo
 
 void write_json(
     resolution const& what, arcana::deck const& subject,
-    std::span<arcana::diagnostic const> reported, streams sink
+    std::span<arcana::diagnostic const> reported, cli::streams sink
 )
 {
     auto diagnostics = json::document::array();
@@ -157,7 +161,7 @@ void write_json(
     {
         diagnostics.push_back(
             json::document{
-                {"level", json::from_view(severity_name(found.level))},
+                {"level", json::from_view(cli::severity_name(found.level))},
                 {"code", json::from_view(found.code)},
                 {"message", found.message},
                 {"card", found.card},
@@ -191,11 +195,11 @@ void write_json(
 // Exit 3's report. ADR-009 fixes the success shape and is silent on this one;
 // emitting nothing would leave a --format json consumer parsing an empty
 // stream, so we emit a distinguishable object with no "diagnostics" key.
-void write_unloadable(resolution const& what, options const& opts, streams sink)
+void write_unloadable(resolution const& what, cli::options const& opts, cli::streams sink)
 {
     auto const& failure = what.deck.error();
 
-    if (opts.format != output_format::json)
+    if (opts.format != cli::output_format::json)
     {
         sink.err << std::format("cannot read deck {}: {}\n", what.target, failure.message);
         return;
@@ -227,42 +231,42 @@ std::vector<arcana::diagnostic> apply_floor(
     return reported;
 }
 
-exit_code code_for(std::span<arcana::diagnostic const> reported) noexcept
+cli::exit_code code_for(std::span<arcana::diagnostic const> reported) noexcept
 {
     bool warned = false;
     for (auto const& found : reported)
     {
         if (found.level == arcana::severity::error)
-            return exit_code::errors;
+            return cli::exit_code::errors;
         if (found.level == arcana::severity::warning)
             warned = true;
     }
 
     // info and pedantic diagnostics are observations, not failures: `info`
     // means nothing is wrong. Only warnings and errors move the exit code.
-    return warned ? exit_code::warnings : exit_code::ok;
+    return warned ? cli::exit_code::warnings : cli::exit_code::ok;
 }
 
-int run_validate(options const& opts, arcana::deck_library const& library, streams sink)
+int run_validate(cli::options const& opts, arcana::deck_library const& library, cli::streams sink)
 {
     auto const what = resolve(library, opts);
 
     if (!what.deck.has_value())
     {
         write_unloadable(what, opts, sink);
-        return to_int(exit_code::unloadable);
+        return cli::to_int(cli::exit_code::unloadable);
     }
 
     auto const& subject = **what.deck;
     auto const found = arcana::validate(subject);
     auto const reported = apply_floor(found, opts.level);
 
-    if (opts.format == output_format::json)
+    if (opts.format == cli::output_format::json)
         write_json(what, subject, reported, sink);
     else
         write_text(what, reported, sink);
 
-    return to_int(code_for(reported));
+    return cli::to_int(code_for(reported));
 }
 
 }  // namespace cartomancer

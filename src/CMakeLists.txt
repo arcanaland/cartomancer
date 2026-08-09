@@ -6,6 +6,8 @@
 configure_file(version.hpp.in
                ${PROJECT_BINARY_DIR}/generated/include/cartomancer/version.hpp @ONLY)
 
+add_subdirectory(cli)
+
 # Everything except main() lives here so the tests can drive the CLI in-process
 # rather than shelling out to a binary.
 add_library(cartomancer-core STATIC)
@@ -22,16 +24,12 @@ target_sources(
             ${PROJECT_BINARY_DIR}/generated/include/cartomancer/version.hpp
             app.hpp
             catalogue.hpp
-            cli.hpp
-            color.hpp
             json.hpp
             list.hpp
             validate.hpp
     PRIVATE
         app.cpp
         catalogue.cpp
-        cli.cpp
-        color.cpp
         json.cpp
         list.cpp
         validate.cpp
@@ -42,7 +40,8 @@ target_compile_features(cartomancer-core PUBLIC cxx_std_26)
 # nlohmann is PUBLIC because json.hpp includes it and the tests include
 # json.hpp. cartomancer-core is never installed, so nothing leaks past here.
 target_link_libraries(
-    cartomancer-core PUBLIC arcana::arcana nlohmann_json::nlohmann_json
+    cartomancer-core
+    PUBLIC arcana::arcana cartomancer::cli nlohmann_json::nlohmann_json
   )
 
 add_executable(cartomancer main.cpp)

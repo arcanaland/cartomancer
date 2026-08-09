@@ -50,7 +50,7 @@ struct widths
     return padded;
 }
 
-void write_text(arcana::deck_library const& library, streams sink)
+void write_text(arcana::deck_library const& library, cli::streams sink)
 {
     auto const decks = library.decks();
     auto const malformed = library.malformed_decks();
@@ -83,7 +83,7 @@ void write_text(arcana::deck_library const& library, streams sink)
         sink.out << std::format("  {}: {}\n", broken.directory_name, broken.problem.message);
 }
 
-void write_json(arcana::deck_library const& library, streams sink)
+void write_json(arcana::deck_library const& library, cli::streams sink)
 {
     auto roots = json::document::array();
     for (auto const& root : library.roots()) roots.push_back(json::from_path(root));
@@ -128,14 +128,14 @@ void write_json(arcana::deck_library const& library, streams sink)
 
 }  // namespace
 
-int run_list(options const& opts, arcana::deck_library const& library, streams sink)
+int run_list(cli::options const& opts, arcana::deck_library const& library, cli::streams sink)
 {
-    if (opts.format == output_format::json)
+    if (opts.format == cli::output_format::json)
         write_json(library, sink);
     else
         write_text(library, sink);
 
-    return to_int(exit_code::ok);
+    return cli::to_int(cli::exit_code::ok);
 }
 
 }  // namespace cartomancer

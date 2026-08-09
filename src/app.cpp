@@ -4,7 +4,9 @@
 #include "app.hpp"
 
 #include "catalogue.hpp"
-#include "cli.hpp"
+#include "cli/color.hpp"
+#include "cli/parse.hpp"
+#include "cli/text.hpp"
 #include "list.hpp"
 #include "validate.hpp"
 
@@ -25,9 +27,7 @@ namespace cartomancer
 namespace
 {
 
-// A validator's answer is a function of the library's rule set, so a bug
-// report that omits the library version is unactionable. ADR-009.
-void write_version(streams sink)
+void write_version(cli::streams sink)
 {
     sink.out << std::format("cartomancer {}\n", version);
     sink.out << std::format("libarcana {}\n", arcana::library_version());
@@ -38,59 +38,56 @@ void write_version(streams sink)
     char const* value = std::getenv("NO_COLOR");
     if (value == nullptr)
         return std::nullopt;
+
     return std::string_view(value);
 }
 
 [[nodiscard]] int dispatch(
-    parse_result const& parsed, arcana::library_options lib_options, streams sink
+    cli::parse_result const& parsed, arcana::library_options lib_options, cli::streams sink
 )
 {
     if (parsed.error.has_value())
     {
         sink.err << std::format("cartomancer: {}\n", *parsed.error);
-        sink.err << "try 'cartomancer --help'\n";
-        return to_int(exit_code::usage);
+        sink.err << "Usage: cartomancer --help\n";
+        return cli::to_int(cli::exit_code::usage);
     }
 
     auto const& opts = parsed.opts;
 
     if (opts.help)
     {
-        sink.out << usage_text();
-        return to_int(exit_code::ok);
+        sink.out << cli::usage_text();
+        return cli::to_int(cli::exit_code::ok);
     }
 
     if (opts.version)
     {
         write_version(sink);
-        return to_int(exit_code::ok);
+        return cli::to_int(cli::exit_code::ok);
     }
 
-    // --list-codes and --explain report the catalogue, not a deck, so they
-    // short-circuit before any library is scanned. ADR-009 lists them under
-    // `validate`; they are accepted bare as well, which is how TASK-010's
-    // acceptance check invokes them.
     if (opts.list_codes)
         return run_list_codes(opts, sink);
 
     if (opts.explain.has_value())
         return run_explain(opts, *opts.explain, sink);
 
-    if (opts.which == command::none)
+    if (opts.which == cli::command::none)
     {
-        sink.out << usage_text();
-        return to_int(exit_code::ok);
+        sink.out << cli::usage_text();
+        return cli::to_int(cli::exit_code::ok);
     }
 
     arcana::deck_library const library(std::move(lib_options));
 
     switch (opts.which)
     {
-        case command::validate:
+        case cli::command::validate:
             return run_validate(opts, library, sink);
-        case command::list:
+        case cli::command::list:
             return run_list(opts, library, sink);
-        case command::none:
+        case cli::command::none:
             break;
     }
 
@@ -100,17 +97,17 @@ void write_version(streams sink)
 }  // namespace
 
 int run_with_library(
-    std::span<std::string_view const> args, arcana::library_options lib_options, streams sink
+    std::span<std::string_view const> args, arcana::library_options lib_options, cli::streams sink
 )
 {
-    return dispatch(parse(args), std::move(lib_options), sink);
+    return dispatch(cli::parse(args), std::move(lib_options), sink);
 }
 
-int run(std::span<std::string_view const> args, streams sink)
+int run(std::span<std::string_view const> args, cli::streams sink)
 {
-    auto const parsed = parse(args);
+    auto const parsed = cli::parse(args);
 
-    sink.colored = resolve_color(
+    sink.colored = cli::resolve_color(
         parsed.opts.color, parsed.opts.color_explicit, ambient_no_color(),
         isatty(STDOUT_FILENO) == 1
     );

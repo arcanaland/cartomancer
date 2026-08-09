@@ -3,25 +3,21 @@
 
 #pragma once
 
-#include "app.hpp"
-#include "cli.hpp"
+#include "cli/options.hpp"
+#include "cli/streams.hpp"
 
 #include <string_view>
 
 namespace cartomancer
 {
 
-// --list-codes: every rule arcana::rules() reports, one per line.
-//
-// No implementation-state column: arcana::rule carries no checked/pending
-// field, and hardcoding the codes that happen to be implemented turns an
-// honesty feature into a lie. ADR-009 Consequences records the cross-repo ask.
-[[nodiscard]] int run_list_codes(options const& opts, streams sink);
+// Report every rule that will be used for deck validation
+[[nodiscard]] int run_list_codes(cli::options const& opts, cli::streams sink);
 
-// --explain CODE: one catalogue entry, or exit 4 for a code that is not in the
-// catalogue.
+// Report an explanation for a given validation code
 //
-// @param code the rule code asked for, already lifted out of options::explain
-[[nodiscard]] int run_explain(options const& opts, std::string_view code, streams sink);
+// @param code the rule code asked for
+// @param exit 4 for a code that is not in the catalogue
+[[nodiscard]] int run_explain(cli::options const& opts, std::string_view code, cli::streams sink);
 
 }  // namespace cartomancer

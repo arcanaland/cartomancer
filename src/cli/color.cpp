@@ -3,7 +3,7 @@
 
 #include "color.hpp"
 
-namespace cartomancer
+namespace cartomancer::cli
 {
 
 std::optional<color_mode> parse_color_mode(std::string_view when) noexcept
@@ -18,6 +18,7 @@ std::optional<color_mode> parse_color_mode(std::string_view when) noexcept
         return color_mode::indexed_256;
     if (when == "truecolor")
         return color_mode::truecolor;
+
     return std::nullopt;
 }
 
@@ -61,4 +62,4 @@ std::string_view color_reset(bool colored) noexcept
     return colored ? "\033[0m" : "";
 }
 
-}  // namespace cartomancer
+}  // namespace cartomancer::cli
