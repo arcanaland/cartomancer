@@ -18,7 +18,6 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
 option(CARTOMANCER_BUILD_TESTS "Build the cartomancer test suite" ${PROJECT_IS_TOP_LEVEL})
 
-# The identifier is `arcana`; `libarcana` is only the repo and the .a filename.
 find_package(arcana CONFIG REQUIRED)
 find_package(nlohmann_json CONFIG REQUIRED)
 

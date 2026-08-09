@@ -57,12 +57,12 @@ test-match pattern: build
 run-test *args: build
     {{build_dir}}/tests/cartomancer_test {{args}}
 
-# Run the built CLI, e.g. `just run validate tests/fixtures/clean-deck`
+# Run the built CLI
 [script]
 run *args: build
     {{build_dir}}/src/cartomancer {{args}}
 
-# Run the test binary under gdb, stopping where it fails.
+# Run the test binary under gdb
 [script]
 debug-test *args: build
     gdb -q -ex run --args {{build_dir}}/tests/cartomancer_test --break {{args}}

@@ -10,10 +10,7 @@ class CartomancerConan(ConanFile):
     version = "0.3.0"
     settings = "os", "compiler", "build_type", "arch"
 
-    # `arcana` is deliberately absent: libarcana ships no consumable Conan
-    # package, so it is found via CMAKE_PREFIX_PATH against an install prefix.
-    # Nothing else belongs here -- in particular NOT tomlplusplus, which
-    # arcana keeps private to its exports as of libarcana@87b0fb9.
+    # TODO: add arcana here when we package it as a conan package
     requires = "nlohmann_json/3.12.0"
     test_requires = "catch2/3.15.2"
 
