@@ -1,0 +1,21 @@
+---
+BasedOnStyle: Google
+Language: Cpp
+Standard: Latest
+IndentWidth: 4
+AccessModifierOffset: -2
+ColumnLimit: 100
+PointerAlignment: Left
+ReferenceAlignment: Left
+DerivePointerAlignment: false
+QualifierAlignment: Right
+BreakBeforeBraces: Allman
+AllowShortFunctionsOnASingleLine: Empty
+AllowShortIfStatementsOnASingleLine: false
+RemoveBracesLLVM: true
+AlignAfterOpenBracket: BlockIndent
+KeepEmptyLines:
+  AtStartOfBlock: true
+MaxEmptyLinesToKeep: 2
+SortIncludes: CaseSensitive
+IncludeBlocks: Preserve

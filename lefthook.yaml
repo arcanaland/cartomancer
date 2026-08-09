@@ -1,10 +1,6 @@
 pre-commit:
   commands:
-    gofmt:
-      run: |
-        set -e
-        for file in $(git diff --cached --name-only --diff-filter=ACM | grep '\.go$'); do
-          gofmt -w "$file"
-          git add "$file"
-        done
-      glob: "*.go"
+    clang-format:
+      glob: "*.{cpp,hpp}"
+      run: just format {staged_files}
+      stage_fixed: true

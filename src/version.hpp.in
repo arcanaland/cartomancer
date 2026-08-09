@@ -1,0 +1,13 @@
+// SPDX-FileCopyrightText: 2026 Adam Fidel
+// SPDX-License-Identifier: MIT
+
+#pragma once
+
+#include <string_view>
+
+namespace cartomancer
+{
+
+inline constexpr std::string_view version = "@PROJECT_VERSION@";
+
+}  // namespace cartomancer
