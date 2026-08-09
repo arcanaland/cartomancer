@@ -152,57 +152,40 @@ void write_json(
     std::span<arcana::diagnostic const> reported, streams sink
 )
 {
-    json::writer out(sink.out);
-    out.begin_object();
-
-    out.key("target");
-    out.string(what.target);
-    out.key("deck_id");
-    out.string(subject.metadata.id);
-    out.key("schema_version");
-    out.string(subject.metadata.schema_version);
-
-    out.key("diagnostics");
-    out.begin_array();
+    auto diagnostics = json::document::array();
     for (auto const& found : reported)
     {
-        out.begin_object();
-        out.key("level");
-        out.string(severity_name(found.level));
-        out.key("code");
-        out.string(found.code);
-        out.key("message");
-        out.string(found.message);
-        out.key("card");
-        out.string_or_null(found.card);
-        out.key("path");
-        if (found.path.has_value())
-            out.string(found.path->string());
-        else
-            out.null();
-        out.key("key");
-        out.string_or_null(found.key);
-        out.end_object();
+        diagnostics.push_back(
+            json::document{
+                {"level", json::from_view(severity_name(found.level))},
+                {"code", json::from_view(found.code)},
+                {"message", found.message},
+                {"card", found.card},
+                {"path", json::from_path(found.path)},
+                {"key", found.key},
+            }
+        );
     }
-    out.end_array();
 
     // Counts reported diagnostics, i.e. after the --level floor, so it always
     // reconciles with the array beside it. ADR-009.
     auto const counts = count(reported);
-    out.key("summary");
-    out.begin_object();
-    out.key("error");
-    out.number(tally_of(counts, arcana::severity::error));
-    out.key("warning");
-    out.number(tally_of(counts, arcana::severity::warning));
-    out.key("info");
-    out.number(tally_of(counts, arcana::severity::info));
-    out.key("pedantic");
-    out.number(tally_of(counts, arcana::severity::pedantic));
-    out.end_object();
+    json::document const summary{
+        {"error", tally_of(counts, arcana::severity::error)},
+        {"warning", tally_of(counts, arcana::severity::warning)},
+        {"info", tally_of(counts, arcana::severity::info)},
+        {"pedantic", tally_of(counts, arcana::severity::pedantic)},
+    };
 
-    out.end_object();
-    out.finish();
+    json::document const report{
+        {"target", what.target},
+        {"deck_id", subject.metadata.id},
+        {"schema_version", subject.metadata.schema_version},
+        {"diagnostics", std::move(diagnostics)},
+        {"summary", summary},
+    };
+
+    json::write(sink.out, report);
 }
 
 // Exit 3's report. ADR-009 fixes the success shape and is silent on this one;
@@ -218,19 +201,17 @@ void write_unloadable(resolution const& what, options const& opts, streams sink)
         return;
     }
 
-    json::writer out(sink.out);
-    out.begin_object();
-    out.key("target");
-    out.string(what.target);
-    out.key("error");
-    out.begin_object();
-    out.key("code");
-    out.string(error_code_name(failure.code));
-    out.key("message");
-    out.string(failure.message);
-    out.end_object();
-    out.end_object();
-    out.finish();
+    json::document const failed{
+        {"code", json::from_view(error_code_name(failure.code))},
+        {"message", failure.message},
+    };
+
+    json::document const report{
+        {"target", what.target},
+        {"error", failed},
+    };
+
+    json::write(sink.out, report);
 }
 
 }  // namespace

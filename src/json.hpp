@@ -3,58 +3,43 @@
 
 #pragma once
 
-#include <cstddef>
+#include <nlohmann/json.hpp>
+
+#include <filesystem>
 #include <optional>
 #include <ostream>
-#include <string>
 #include <string_view>
 
 namespace cartomancer::json
 {
 
-// Minimal pretty-printing JSON writer.
+// `ordered_json`, never `nlohmann::json`: the default object type is
+// `std::map`, which serializes keys in alphabetical order. ADR-009 makes every
+// field name in --format json part of the CLI's API, and the order they are
+// written in is how those shapes are documented -- so insertion order it is.
+using document = nlohmann::ordered_json;
+
+// A path as the bytes we print everywhere else.
 //
-// ADR-009 makes every field name in --format json part of the CLI's API, and
-// the two shapes it fixes are small and closed, so this is a writer rather
-// than a document model. It tracks nesting only well enough to place commas
-// and indentation.
-class writer
-{
-  public:
-    explicit writer(std::ostream& out) : out_(&out) {}
+// nlohmann converts std::filesystem::path itself, but by way of UTF-8, which
+// on this platform is a different answer from path::string() for a name the
+// filesystem accepted and Unicode would not. Paths go through here instead.
+[[nodiscard]] document from_path(std::filesystem::path const& value);
 
-    void begin_object();
-    void end_object();
+// ADR-009: empty optionals are present and null, never omitted, so a consumer
+// can index without a membership test.
+[[nodiscard]] document from_path(std::optional<std::filesystem::path> const& value);
 
-    void begin_array();
-    void end_array();
+// arcana hands us string_views into static storage; nlohmann wants an owner.
+[[nodiscard]] document from_view(std::string_view value);
 
-    // Write a key. The next call writes its value.
-    void key(std::string_view name);
-
-    void string(std::string_view value);
-    void number(std::size_t value);
-    void boolean(bool value);
-    void null();
-
-    // ADR-009: empty optionals are present and null, never omitted, so a
-    // consumer can index without a membership test.
-    void string_or_null(std::optional<std::string> const& value);
-
-    // Finish the document with a trailing newline.
-    void finish();
-
-  private:
-    void punctuate();
-    void indent();
-
-    std::ostream* out_;
-    std::size_t depth_ = 0;
-    bool first_ = true;
-    bool after_key_ = false;
-};
-
-// The JSON string escape, exposed for tests.
-[[nodiscard]] std::string escape(std::string_view value);
+// Serialize to `out`: two-space indent, non-ASCII passed through, one trailing
+// newline.
+//
+// Deck names and paths are filesystem bytes and are not guaranteed to be valid
+// UTF-8. dump() throws type_error.316 on those by default, which would take
+// the process down partway through a report it had already committed to; we
+// substitute U+FFFD instead.
+void write(std::ostream& out, document const& doc);
 
 }  // namespace cartomancer::json

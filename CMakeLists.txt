@@ -6,6 +6,8 @@ project(
     cartomancer
     VERSION 0.3.0
     LANGUAGES CXX
+    DESCRIPTION "Command line tool for Arcana Land's Tarot decks"
+    HOMEPAGE_URL "https://github.com/arcanaland/cartomancer"
     SPDX_LICENSE "MIT"
   )
 
@@ -18,6 +20,7 @@ option(CARTOMANCER_BUILD_TESTS "Build the cartomancer test suite" ${PROJECT_IS_T
 
 # The identifier is `arcana`; `libarcana` is only the repo and the .a filename.
 find_package(arcana CONFIG REQUIRED)
+find_package(nlohmann_json CONFIG REQUIRED)
 
 add_subdirectory(src)
 

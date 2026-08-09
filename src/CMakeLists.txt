@@ -1,31 +1,51 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-# Under include/ so the generated directory does not collide with the
+# Under generated/include/ so the generated directory does not collide with the
 # `cartomancer` executable, which lands in this same binary dir.
-configure_file(
-    version.hpp.in "${CMAKE_CURRENT_BINARY_DIR}/include/cartomancer/version.hpp" @ONLY
-  )
+configure_file(version.hpp.in
+               ${PROJECT_BINARY_DIR}/generated/include/cartomancer/version.hpp @ONLY)
 
 # Everything except main() lives here so the tests can drive the CLI in-process
 # rather than shelling out to a binary.
-add_library(
-    cartomancer_core STATIC
-    app.cpp
-    cli.cpp
-    color.cpp
-    json.cpp
-    catalogue.cpp
-    list.cpp
-    validate.cpp
-  )
+add_library(cartomancer-core STATIC)
+add_library(cartomancer::core ALIAS cartomancer-core)
 
-target_include_directories(
-    cartomancer_core
-    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_BINARY_DIR}/include"
-  )
+target_sources(
+    cartomancer-core
+    PUBLIC
+        FILE_SET HEADERS
+        BASE_DIRS
+            ${CMAKE_CURRENT_SOURCE_DIR}
+            ${PROJECT_BINARY_DIR}/generated/include
+        FILES
+            ${PROJECT_BINARY_DIR}/generated/include/cartomancer/version.hpp
+            app.hpp
+            catalogue.hpp
+            cli.hpp
+            color.hpp
+            json.hpp
+            list.hpp
+            validate.hpp
+    PRIVATE
+        app.cpp
+        catalogue.cpp
+        cli.cpp
+        color.cpp
+        json.cpp
+        list.cpp
+        validate.cpp
+)
 
-target_link_libraries(cartomancer_core PUBLIC arcana::arcana)
+target_compile_features(cartomancer-core PUBLIC cxx_std_26)
+
+# nlohmann is PUBLIC because json.hpp includes it and the tests include
+# json.hpp. cartomancer-core is never installed, so nothing leaks past here.
+target_link_libraries(
+    cartomancer-core PUBLIC arcana::arcana nlohmann_json::nlohmann_json
+  )
 
 add_executable(cartomancer main.cpp)
-target_link_libraries(cartomancer PRIVATE cartomancer_core)
+add_executable(cartomancer::cartomancer ALIAS cartomancer)
+
+target_link_libraries(cartomancer PRIVATE cartomancer::core)

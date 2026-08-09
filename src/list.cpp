@@ -85,59 +85,45 @@ void write_text(arcana::deck_library const& library, streams sink)
 
 void write_json(arcana::deck_library const& library, streams sink)
 {
-    json::writer out(sink.out);
-    out.begin_object();
+    auto roots = json::document::array();
+    for (auto const& root : library.roots()) roots.push_back(json::from_path(root));
 
-    out.key("roots");
-    out.begin_array();
-    for (auto const& root : library.roots()) out.string(root.string());
-    out.end_array();
-
-    out.key("decks");
-    out.begin_array();
+    auto decks = json::document::array();
     for (auto const& summary : library.decks())
     {
-        out.begin_object();
-        out.key("directory_name");
-        out.string(summary.directory_name);
-        out.key("path");
-        out.string(summary.path.string());
-        out.key("id");
-        out.string(summary.id);
-        out.key("name");
-        out.string(summary.name);
-        out.key("version");
-        out.string(summary.version);
-        out.key("author");
-        out.string_or_null(summary.author);
-        out.key("icon");
-        if (summary.icon.has_value())
-            out.string(summary.icon->string());
-        else
-            out.null();
-        out.key("card_count");
-        out.number(summary.card_count);
-        out.end_object();
+        decks.push_back(
+            json::document{
+                {"directory_name", summary.directory_name},
+                {"path", json::from_path(summary.path)},
+                {"id", summary.id},
+                {"name", summary.name},
+                {"version", summary.version},
+                {"author", summary.author},
+                {"icon", json::from_path(summary.icon)},
+                {"card_count", summary.card_count},
+            }
+        );
     }
-    out.end_array();
 
-    out.key("malformed");
-    out.begin_array();
+    auto malformed = json::document::array();
     for (auto const& broken : library.malformed_decks())
     {
-        out.begin_object();
-        out.key("directory_name");
-        out.string(broken.directory_name);
-        out.key("path");
-        out.string(broken.path.string());
-        out.key("problem");
-        out.string(broken.problem.message);
-        out.end_object();
+        malformed.push_back(
+            json::document{
+                {"directory_name", broken.directory_name},
+                {"path", json::from_path(broken.path)},
+                {"problem", broken.problem.message},
+            }
+        );
     }
-    out.end_array();
 
-    out.end_object();
-    out.finish();
+    json::document const report{
+        {"roots", std::move(roots)},
+        {"decks", std::move(decks)},
+        {"malformed", std::move(malformed)},
+    };
+
+    json::write(sink.out, report);
 }
 
 }  // namespace

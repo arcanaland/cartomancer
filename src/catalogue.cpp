@@ -37,24 +37,19 @@ namespace
     return std::format("{}-{}", entry.applies_to.min, entry.applies_to.max);
 }
 
-void write_rule_json(json::writer& out, arcana::rule const& entry)
+// `explain` emits this and appends "explanation"; --list-codes emits it alone.
+// Keep them one function so the shared fields cannot drift apart.
+[[nodiscard]] json::document rule_json(arcana::rule const& entry)
 {
-    out.begin_object();
-    out.key("code");
-    out.string(entry.code);
-    out.key("default_level");
-    out.string(severity_name(entry.default_level));
-    out.key("area");
-    out.string(entry.area);
-    out.key("needs");
-    out.string(phase_name(entry.needs));
-    out.key("spec_ref");
-    out.string(entry.spec_ref);
-    out.key("applies_to");
-    out.string(applies_to(entry));
-    out.key("experimental");
-    out.boolean(entry.experimental);
-    out.end_object();
+    return json::document{
+        {"code", json::from_view(entry.code)},
+        {"default_level", json::from_view(severity_name(entry.default_level))},
+        {"area", json::from_view(entry.area)},
+        {"needs", json::from_view(phase_name(entry.needs))},
+        {"spec_ref", json::from_view(entry.spec_ref)},
+        {"applies_to", applies_to(entry)},
+        {"experimental", entry.experimental},
+    };
 }
 
 }  // namespace
@@ -65,14 +60,10 @@ int run_list_codes(options const& opts, streams sink)
 
     if (opts.format == output_format::json)
     {
-        json::writer out(sink.out);
-        out.begin_object();
-        out.key("rules");
-        out.begin_array();
-        for (auto const& entry : catalogue) write_rule_json(out, entry);
-        out.end_array();
-        out.end_object();
-        out.finish();
+        auto rules = json::document::array();
+        for (auto const& entry : catalogue) rules.push_back(rule_json(entry));
+
+        json::write(sink.out, json::document{{"rules", std::move(rules)}});
         return to_int(exit_code::ok);
     }
 
@@ -102,26 +93,10 @@ int run_explain(options const& opts, std::string_view code, streams sink)
 
     if (opts.format == output_format::json)
     {
-        json::writer out(sink.out);
-        out.begin_object();
-        out.key("code");
-        out.string(entry->code);
-        out.key("default_level");
-        out.string(severity_name(entry->default_level));
-        out.key("area");
-        out.string(entry->area);
-        out.key("needs");
-        out.string(phase_name(entry->needs));
-        out.key("spec_ref");
-        out.string(entry->spec_ref);
-        out.key("applies_to");
-        out.string(applies_to(*entry));
-        out.key("experimental");
-        out.boolean(entry->experimental);
-        out.key("explanation");
-        out.string(entry->explanation);
-        out.end_object();
-        out.finish();
+        auto document = rule_json(*entry);
+        document["explanation"] = json::from_view(entry->explanation);
+
+        json::write(sink.out, document);
         return to_int(exit_code::ok);
     }
 
