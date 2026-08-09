@@ -1,3 +1,2 @@
-# Deliberately unparseable: the table header is never closed.
 [deck
 name = "Malformed Deck"

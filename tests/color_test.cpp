@@ -47,20 +47,20 @@ TEST_CASE("the flag --no-color is an exact alias for --color=never", "[color]")
     REQUIRE(spelled.color_explicit);
 }
 
-TEST_CASE("with no flag, colour follows the terminal", "[color]")
+TEST_CASE("with no flag, color follows the terminal", "[color]")
 {
     REQUIRE(resolve_color(color_mode::automatic, false, std::nullopt, tty));
     REQUIRE_FALSE(resolve_color(color_mode::automatic, false, std::nullopt, pipe));
 }
 
-TEST_CASE("NO_COLOR with any non-empty value disables colour", "[color]")
+TEST_CASE("NO_COLOR with any non-empty value disables color", "[color]")
 {
     REQUIRE_FALSE(resolve_color(color_mode::automatic, false, "1", tty));
     REQUIRE_FALSE(resolve_color(color_mode::automatic, false, "0", tty));
     REQUIRE_FALSE(resolve_color(color_mode::automatic, false, "anything", tty));
 }
 
-TEST_CASE("an empty NO_COLOR does not disable colour", "[color]")
+TEST_CASE("an empty NO_COLOR does not disable color", "[color]")
 {
     // https://no-color.org says any non-empty value.
     REQUIRE(resolve_color(color_mode::automatic, false, "", tty));
@@ -83,21 +83,19 @@ TEST_CASE("the flag --color=always wins over a pipe", "[color]")
     REQUIRE(resolve_color(color_mode::always, true, std::nullopt, pipe));
 }
 
-TEST_CASE("an explicit --color=auto asks for the terminal check and nothing else", "[color]")
+TEST_CASE("an explicit --color=auto asks for the terminal check", "[color]")
 {
-    // ADR-009: an explicit flag beats an ambient one, and `auto` is explicit
-    // when it is typed.
     REQUIRE(resolve_color(color_mode::automatic, true, "1", tty));
     REQUIRE_FALSE(resolve_color(color_mode::automatic, true, std::nullopt, pipe));
 }
 
-TEST_CASE("colour off emits no escape sequences at all", "[color]")
+TEST_CASE("color off emits no escape sequences at all", "[color]")
 {
     REQUIRE(severity_color(arcana::severity::error, false).empty());
     REQUIRE(color_reset(false).empty());
 }
 
-TEST_CASE("colour on emits a distinct sequence per severity", "[color]")
+TEST_CASE("color on emits a distinct sequence per severity", "[color]")
 {
     auto const error = severity_color(arcana::severity::error, true);
     auto const warning = severity_color(arcana::severity::warning, true);

@@ -17,21 +17,19 @@
 namespace cartomancer::testing
 {
 
-// The fixture tree, as an absolute path baked in by CMake so the tests do not
-// depend on the working directory ctest happens to use.
+// The fixture tree as an absolute path baked in by CMake.
+// Hardcoding so the tests do not depend on the working dir.
 [[nodiscard]] inline std::filesystem::path fixtures()
 {
     return std::filesystem::path{CARTOMANCER_FIXTURES};
 }
 
-// The fixture deck library root. Pointing library_options::roots here is what
-// keeps these tests off whatever decks are installed on the build machine.
 [[nodiscard]] inline std::filesystem::path library_root()
 {
     return fixtures() / "library";
 }
 
-// One CLI invocation and everything it produced.
+// One CLI invocation
 struct invocation
 {
     int status = 0;
@@ -40,7 +38,7 @@ struct invocation
 };
 
 // Run the CLI in-process against the fixture library.
-[[nodiscard]] inline invocation run_cli(std::initializer_list<std::string_view> args)
+[[nodiscard]] inline invocation run_cli(std::initializer_list<std::string_view> args, bool use_color = false)
 {
     std::vector<std::string_view> const argv(args);
 
@@ -50,24 +48,7 @@ struct invocation
     arcana::library_options options;
     options.roots = {library_root()};
 
-    cli::streams sink{.out = out, .err = err, .use_color = false};
-    int const status = run_with_library(argv, std::move(options), sink);
-
-    return {.status = status, .out = out.str(), .err = err.str()};
-}
-
-// As run_cli, but with colour forced on so the SGR sequences can be asserted.
-[[nodiscard]] inline invocation run_cli_with_color(std::initializer_list<std::string_view> args)
-{
-    std::vector<std::string_view> const argv(args);
-
-    std::ostringstream out;
-    std::ostringstream err;
-
-    arcana::library_options options;
-    options.roots = {library_root()};
-
-    cli::streams sink{.out = out, .err = err, .use_color = true};
+    cli::streams sink{.out = out, .err = err, .use_color = use_color};
     int const status = run_with_library(argv, std::move(options), sink);
 
     return {.status = status, .out = out.str(), .err = err.str()};

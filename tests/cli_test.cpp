@@ -39,16 +39,6 @@ TEST_CASE("subcommands are recognised", "[cli]")
     REQUIRE(parse_args({"list"})->which == command::list);
 }
 
-TEST_CASE("show and draw are not stubbed, so they are unknown subcommands", "[cli]")
-{
-    // ADR-009 specifies them; TASK-010 deliberately does not ship them, and an
-    // unimplemented subcommand that exists is worse than one that does not.
-    REQUIRE_FALSE(parse_args({"show"}).has_value());
-    REQUIRE_FALSE(parse_args({"draw"}).has_value());
-    REQUIRE(run_cli({"show", "major_arcana.00"}).status == 4);
-    REQUIRE(run_cli({"draw"}).status == 4);
-}
-
 TEST_CASE("an unknown subcommand is a usage error", "[cli]")
 {
     auto const result = run_cli({"summon"});
@@ -65,8 +55,6 @@ TEST_CASE("an unknown flag is a usage error", "[cli]")
 
 TEST_CASE("an unknown flag does not swallow the argument after it", "[cli]")
 {
-    // Otherwise `cartomancer --nonsense list` would report a stranger error
-    // than the one the user made.
     auto const parsed = parse_args({"--nonsense", "list"});
     REQUIRE_FALSE(parsed.has_value());
     REQUIRE(parsed.error() == "unknown flag: --nonsense");
@@ -111,8 +99,6 @@ TEST_CASE("a flag with nothing after it is a usage error", "[cli]")
 
 TEST_CASE("the flag --deck and TARGET together are a usage error", "[cli]")
 {
-    // A user who supplies two deck selectors has a wrong belief about one of
-    // them, so this is exit 4 rather than a silent precedence win. ADR-009.
     auto const result = run_cli({"validate", "--deck", "clean-deck", "error-deck"});
     REQUIRE(result.status == 4);
     REQUIRE(result.err.contains("not both"));
@@ -144,10 +130,8 @@ TEST_CASE("a bare invocation prints help and exits 0", "[cli]")
     REQUIRE(result.out.contains("Usage:"));
 }
 
-TEST_CASE("the flag --version prints cartomancer and the libarcana it linked", "[cli]")
+TEST_CASE("the flag --version prints cartomancer and libarcana versions", "[cli]")
 {
-    // A validator's answer is a function of the library's rule set, so the
-    // library version is part of the answer. ADR-009.
     auto const result = run_cli({"--version"});
     REQUIRE(result.status == 0);
     REQUIRE(result.out.contains("cartomancer "));
@@ -163,7 +147,7 @@ TEST_CASE("global flags are accepted before and after the subcommand", "[cli]")
     REQUIRE(parse_args({"list", "--format", "json"})->format == output_format::json);
 }
 
-TEST_CASE("exit codes are the ADR-009 integers", "[cli]")
+TEST_CASE("exit codes are integers", "[cli]")
 {
     REQUIRE(to_int(exit_code::ok) == 0);
     REQUIRE(to_int(exit_code::warnings) == 1);

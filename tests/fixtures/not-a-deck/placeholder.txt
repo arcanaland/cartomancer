@@ -1,2 +1,1 @@
-A directory with no deck.toml, so that `validate` on it exits 3.
-Git does not track empty directories, hence this file.
+A directory with no deck.toml

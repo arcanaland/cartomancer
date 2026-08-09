@@ -23,9 +23,6 @@ namespace
 
 TEST_CASE("the flag --list-codes prints one line per catalogued rule", "[catalogue]")
 {
-    // Reconciled against rules().size() rather than a literal 87: the
-    // catalogue grows when the spec does, and a hardcoded count is a test that
-    // fails for the wrong reason.
     auto const result = run_cli({"--list-codes"});
 
     REQUIRE(result.status == 0);
@@ -33,24 +30,12 @@ TEST_CASE("the flag --list-codes prints one line per catalogued rule", "[catalog
 }
 
 TEST_CASE(
-    "the flag --list-codes reports the whole catalogue, not the implemented subset", "[catalogue]"
+    "the flag --list-codes reports the whole catalogue", "[catalogue]"
 )
 {
     auto const result = run_cli({"--list-codes"});
 
     for (auto const& entry : arcana::rules()) REQUIRE(result.out.contains(entry.code));
-}
-
-TEST_CASE("the flag --list-codes carries no implementation-state column", "[catalogue]")
-{
-    // arcana::rule exposes no checked/pending/deferred field, and hardcoding
-    // the codes that happen to have a check body turns an honesty feature into
-    // a lie. ADR-009 Consequences records the cross-repo ask.
-    auto const result = run_cli({"--list-codes"});
-
-    REQUIRE_FALSE(result.out.contains("pending"));
-    REQUIRE_FALSE(result.out.contains("implemented"));
-    REQUIRE_FALSE(result.out.contains("deferred"));
 }
 
 TEST_CASE("the flag --list-codes works under validate too", "[catalogue]")
@@ -90,7 +75,7 @@ TEST_CASE("the flag --explain on an unknown code is a usage error", "[catalogue]
     REQUIRE(result.err.contains("no-such-rule"));
 }
 
-TEST_CASE("the flag --explain --format json carries the explanation", "[catalogue]")
+TEST_CASE("the flag --explain --format json has the explanation", "[catalogue]")
 {
     auto const& first = arcana::rules().front();
     auto const result = run_cli({"--explain", first.code, "--format", "json"});

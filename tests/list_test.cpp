@@ -19,8 +19,6 @@ TEST_CASE("list names every readable deck in the roots", "[list]")
 
 TEST_CASE("list exits 0 in the presence of a malformed deck", "[list]")
 {
-    // Reporting malformed decks is the command's whole job, so doing it is a
-    // success. ADR-009 says so because the opposite is a reasonable guess.
     auto const result = run_cli({"list"});
 
     REQUIRE(result.status == 0);
@@ -28,7 +26,7 @@ TEST_CASE("list exits 0 in the presence of a malformed deck", "[list]")
     REQUIRE(result.out.contains("malformed-deck"));
 }
 
-TEST_CASE("list --format json carries the deck_summary field names", "[list]")
+TEST_CASE("list --format json contains the deck_summary field names", "[list]")
 {
     auto const result = run_cli({"list", "--format", "json"});
 
@@ -44,8 +42,6 @@ TEST_CASE("list --format json carries the deck_summary field names", "[list]")
 
 TEST_CASE("list --format json writes empty optionals as null", "[list]")
 {
-    // The fixtures declare no author and no icon, so both must appear as
-    // present-and-null rather than be omitted. ADR-009.
     auto const result = run_cli({"list", "--format", "json"});
 
     REQUIRE(result.out.contains("\"author\": null"));
