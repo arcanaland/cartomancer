@@ -131,14 +131,14 @@ void write_text(
     resolution const& what, std::span<arcana::diagnostic const> reported, cli::streams sink
 )
 {
-    bool const colored = sink.colored;
+    bool const use_color = sink.use_color;
 
     for (auto const& found : reported)
     {
         auto const where = location_of(found);
         sink.out << std::format(
-            "{}{}{}: {}: {}{}\n", cli::severity_color(found.level, colored),
-            cli::severity_name(found.level), cli::color_reset(colored), found.code, found.message,
+            "{}{}{}: {}: {}{}\n", cli::severity_color(found.level, use_color),
+            cli::severity_name(found.level), cli::color_reset(use_color), found.code, found.message,
             where.empty() ? std::string{} : std::format(" ({})", where)
         );
     }

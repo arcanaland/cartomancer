@@ -26,21 +26,20 @@ bool resolve_color(
     color_mode mode, bool explicitly_set, std::optional<std::string_view> no_color, bool tty
 ) noexcept
 {
-    // An explicit --color beats the ambient NO_COLOR, including --color=auto,
-    // which asks for the terminal check and nothing else.
+    // An explicit --color beats the ambient NO_COLOR
     if (explicitly_set)
         return mode == color_mode::automatic ? tty : mode != color_mode::never;
 
-    // https://no-color.org: any non-empty value disables colour.
+    // https://no-color.org <3
     if (no_color.has_value() && !no_color->empty())
         return false;
 
     return tty;
 }
 
-std::string_view severity_color(arcana::severity level, bool colored) noexcept
+std::string_view severity_color(arcana::severity level, bool use_color) noexcept
 {
-    if (!colored)
+    if (!use_color)
         return "";
 
     switch (level)
@@ -57,9 +56,9 @@ std::string_view severity_color(arcana::severity level, bool colored) noexcept
     return "";
 }
 
-std::string_view color_reset(bool colored) noexcept
+std::string_view color_reset(bool use_color) noexcept
 {
-    return colored ? "\033[0m" : "";
+    return use_color ? "\033[0m" : "";
 }
 
 }  // namespace cartomancer::cli

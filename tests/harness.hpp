@@ -50,14 +50,14 @@ struct invocation
     arcana::library_options options;
     options.roots = {library_root()};
 
-    cli::streams sink{.out = out, .err = err, .colored = false};
+    cli::streams sink{.out = out, .err = err, .use_color = false};
     int const status = run_with_library(argv, std::move(options), sink);
 
     return {.status = status, .out = out.str(), .err = err.str()};
 }
 
 // As run_cli, but with colour forced on so the SGR sequences can be asserted.
-[[nodiscard]] inline invocation run_cli_colored(std::initializer_list<std::string_view> args)
+[[nodiscard]] inline invocation run_cli_with_color(std::initializer_list<std::string_view> args)
 {
     std::vector<std::string_view> const argv(args);
 
@@ -67,7 +67,7 @@ struct invocation
     arcana::library_options options;
     options.roots = {library_root()};
 
-    cli::streams sink{.out = out, .err = err, .colored = true};
+    cli::streams sink{.out = out, .err = err, .use_color = true};
     int const status = run_with_library(argv, std::move(options), sink);
 
     return {.status = status, .out = out.str(), .err = err.str()};

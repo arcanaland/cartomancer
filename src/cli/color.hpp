@@ -35,9 +35,9 @@ enum class color_mode : std::uint8_t
 ) noexcept;
 
 // The SGR sequence a severity is printed in or "" when colour is off.
-[[nodiscard]] std::string_view severity_color(arcana::severity level, bool colored) noexcept;
+[[nodiscard]] std::string_view severity_color(arcana::severity level, bool use_color) noexcept;
 
 // The SGR reset or "" when colour is off.
-[[nodiscard]] std::string_view color_reset(bool colored) noexcept;
+[[nodiscard]] std::string_view color_reset(bool use_color) noexcept;
 
 }  // namespace cartomancer::cli

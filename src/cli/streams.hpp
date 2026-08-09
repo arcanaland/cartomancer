@@ -15,8 +15,9 @@ struct streams
     std::ostream& out;
     std::ostream& err;
 
-    // Whether out takes ANSI colour.
-    bool colored = false;
+    // Whether to emit ANSI colour on out. Already resolved from --color,
+    // NO_COLOR, and whether out is a terminal -- see resolve_color.
+    bool use_color = false;
 };
 
 }  // namespace cartomancer::cli

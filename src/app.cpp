@@ -107,7 +107,7 @@ int run(std::span<std::string_view const> args, cli::streams sink)
 {
     auto const parsed = cli::parse(args);
 
-    sink.colored = cli::resolve_color(
+    sink.use_color = cli::resolve_color(
         parsed.opts.color, parsed.opts.color_explicit, ambient_no_color(),
         isatty(STDOUT_FILENO) == 1
     );

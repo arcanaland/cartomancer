@@ -1,9 +1,6 @@
 # SPDX-FileCopyrightText: 2026 Adam Fidel
 # SPDX-License-Identifier: MIT
 
-# The command-line surface on its own: argument parsing, the option struct, the
-# help text, and the terminal colour decision. Knows nothing about decks, so it
-# can be tested without touching the filesystem.
 add_library(cartomancer-cli STATIC)
 add_library(cartomancer::cli ALIAS cartomancer-cli)
 
@@ -17,14 +14,15 @@ target_sources(
             options.hpp
             parse.hpp
             streams.hpp
+            surface.hpp
             text.hpp
     PRIVATE
         color.cpp
         parse.cpp
+        surface.cpp
         text.cpp
 )
 
 target_compile_features(cartomancer-cli PUBLIC cxx_std_26)
 
-# arcana::severity appears in `options` and in the colour and name lookups.
 target_link_libraries(cartomancer-cli PUBLIC arcana::arcana)

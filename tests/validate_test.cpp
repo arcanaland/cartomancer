@@ -184,6 +184,6 @@ TEST_CASE("text output carries no escape sequences when colour is off", "[valida
 
 TEST_CASE("text output carries escape sequences when colour is on", "[validate]")
 {
-    auto const result = run_cli_colored({"validate", deck_path("error-deck")});
+    auto const result = run_cli_with_color({"validate", deck_path("error-deck")});
     REQUIRE(result.out.contains("\033["));
 }
