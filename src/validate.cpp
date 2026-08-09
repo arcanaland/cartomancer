@@ -8,13 +8,13 @@
 #include "json.hpp"
 
 #include <algorithm>
-#include <array>
 #include <expected>
 #include <filesystem>
 #include <format>
 #include <memory>
 #include <ostream>
 #include <string>
+#include <string_view>
 
 namespace cartomancer
 {
@@ -26,8 +26,6 @@ namespace fs = std::filesystem;
 
 using loaded_deck = std::expected<std::shared_ptr<arcana::deck const>, arcana::error>;
 
-// A deck the command was asked to act on, plus the spelling of the request we
-// echo back as the JSON "target".
 struct resolution
 {
     std::string target;
@@ -50,7 +48,7 @@ struct resolution
     return "unknown";
 }
 
-// Look a deck up by its directory name in the library.
+// Look a deck by its directory name in the library.
 [[nodiscard]] resolution resolve_by_name(
     arcana::deck_library const& library, std::string const& name
 )
@@ -58,8 +56,7 @@ struct resolution
     auto const summary = library.find(name);
     if (!summary.has_value())
     {
-        // A name carrying a separator was almost certainly meant as a path, so
-        // say so rather than report it as a missing library entry.
+        // A name with a separator was almost certainly meant as a path
         auto const message = name.contains(fs::path::preferred_separator)
                                  ? std::format("no deck directory at '{}'", name)
                                  : std::format("no deck named '{}' in the library", name);
@@ -79,10 +76,6 @@ struct resolution
 }
 
 // Resolve which deck to act on.
-//
-// ADR-009's order is --deck NAME, then positional TARGET. A TARGET that exists
-// on disk is loaded directly; anything else is a directory name to look up.
-// `validate` with neither selector means the current directory.
 [[nodiscard]] resolution resolve(arcana::deck_library const& library, cli::options const& opts)
 {
     if (opts.deck.has_value())
@@ -112,23 +105,41 @@ struct resolution
     return {};
 }
 
-// Counts per severity, indexed by the enum's underlying value.
-using tally = std::array<std::size_t, 4>;
+// Counts per severity.
+struct tally
+{
+    std::size_t error = 0;
+    std::size_t warning = 0;
+    std::size_t info = 0;
+    std::size_t pedantic = 0;
+};
 
 [[nodiscard]] tally count(std::span<arcana::diagnostic const> reported)
 {
-    tally counts{};
-    for (auto const& found : reported) ++counts.at(static_cast<std::size_t>(found.level));
+    tally counts;
+    for (auto const& found : reported)
+    {
+        switch (found.level)
+        {
+            case arcana::severity::error:
+                ++counts.error;
+                break;
+            case arcana::severity::warning:
+                ++counts.warning;
+                break;
+            case arcana::severity::info:
+                ++counts.info;
+                break;
+            case arcana::severity::pedantic:
+                ++counts.pedantic;
+                break;
+        }
+    }
     return counts;
 }
 
-[[nodiscard]] std::size_t tally_of(tally const& counts, arcana::severity level)
-{
-    return counts.at(static_cast<std::size_t>(level));
-}
-
 void write_text(
-    resolution const& what, std::span<arcana::diagnostic const> reported, cli::streams sink
+    std::string_view target, std::span<arcana::diagnostic const> reported, cli::streams sink
 )
 {
     bool const use_color = sink.use_color;
@@ -145,14 +156,13 @@ void write_text(
 
     auto const counts = count(reported);
     sink.out << std::format(
-        "\n{}: {} error(s), {} warning(s), {} info, {} pedantic\n", what.target,
-        tally_of(counts, arcana::severity::error), tally_of(counts, arcana::severity::warning),
-        tally_of(counts, arcana::severity::info), tally_of(counts, arcana::severity::pedantic)
+        "\n{}: {} error(s), {} warning(s), {} info, {} pedantic\n", target, counts.error,
+        counts.warning, counts.info, counts.pedantic
     );
 }
 
 void write_json(
-    resolution const& what, arcana::deck const& subject,
+    std::string_view target, arcana::deck const& subject,
     std::span<arcana::diagnostic const> reported, cli::streams sink
 )
 {
@@ -171,18 +181,16 @@ void write_json(
         );
     }
 
-    // Counts reported diagnostics, i.e. after the --level floor, so it always
-    // reconciles with the array beside it. ADR-009.
     auto const counts = count(reported);
     json::document const summary{
-        {"error", tally_of(counts, arcana::severity::error)},
-        {"warning", tally_of(counts, arcana::severity::warning)},
-        {"info", tally_of(counts, arcana::severity::info)},
-        {"pedantic", tally_of(counts, arcana::severity::pedantic)},
+        {"error", counts.error},
+        {"warning", counts.warning},
+        {"info", counts.info},
+        {"pedantic", counts.pedantic},
     };
 
     json::document const report{
-        {"target", what.target},
+        {"target", json::from_view(target)},
         {"deck_id", subject.metadata.id},
         {"schema_version", subject.metadata.schema_version},
         {"diagnostics", std::move(diagnostics)},
@@ -192,16 +200,14 @@ void write_json(
     json::write(sink.out, report);
 }
 
-// Exit 3's report. ADR-009 fixes the success shape and is silent on this one;
-// emitting nothing would leave a --format json consumer parsing an empty
-// stream, so we emit a distinguishable object with no "diagnostics" key.
-void write_unloadable(resolution const& what, cli::options const& opts, cli::streams sink)
+void write_unloadable(
+    std::string_view target, arcana::error const& failure, cli::options const& opts,
+    cli::streams sink
+)
 {
-    auto const& failure = what.deck.error();
-
     if (opts.format != cli::output_format::json)
     {
-        sink.err << std::format("cannot read deck {}: {}\n", what.target, failure.message);
+        sink.err << std::format("cannot read deck {}: {}\n", target, failure.message);
         return;
     }
 
@@ -211,7 +217,7 @@ void write_unloadable(resolution const& what, cli::options const& opts, cli::str
     };
 
     json::document const report{
-        {"target", what.target},
+        {"target", json::from_view(target)},
         {"error", failed},
     };
 
@@ -242,8 +248,6 @@ cli::exit_code code_for(std::span<arcana::diagnostic const> reported) noexcept
             warned = true;
     }
 
-    // info and pedantic diagnostics are observations, not failures: `info`
-    // means nothing is wrong. Only warnings and errors move the exit code.
     return warned ? cli::exit_code::warnings : cli::exit_code::ok;
 }
 
@@ -255,7 +259,7 @@ cli::exit_code run_validate(
 
     if (!what.deck.has_value())
     {
-        write_unloadable(what, opts, sink);
+        write_unloadable(what.target, what.deck.error(), opts, sink);
         return cli::exit_code::unloadable;
     }
 
@@ -264,9 +268,9 @@ cli::exit_code run_validate(
     auto const reported = apply_floor(found, opts.level);
 
     if (opts.format == cli::output_format::json)
-        write_json(what, subject, reported, sink);
+        write_json(what.target, subject, reported, sink);
     else
-        write_text(what, reported, sink);
+        write_text(what.target, reported, sink);
 
     return code_for(reported);
 }

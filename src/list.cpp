@@ -33,8 +33,6 @@ struct widths
     return widest;
 }
 
-// Drop the padding of whatever trailing columns were empty. A deck declaring
-// no [deck].id is ordinary, and a line of trailing spaces is not.
 [[nodiscard]] std::string trim_end(std::string line)
 {
     auto const last = line.find_last_not_of(' ');

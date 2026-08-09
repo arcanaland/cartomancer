@@ -13,7 +13,7 @@
 namespace cartomancer::cli
 {
 
-// A whole command line a message explaining why it is not one.
+// A whole command line or a message explaining why it is not one.
 using parse_result = std::expected<options, std::string>;
 
 // @param args argv without argv[0].
