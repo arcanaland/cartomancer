@@ -8,15 +8,13 @@
 namespace cartomancer::cli
 {
 
-// Where a command writes. Passed by value so the tests can substitute
-// stringstreams for the process streams.
+// Where a command writes (abstracted for tests).
 struct streams
 {
     std::ostream& out;
     std::ostream& err;
 
-    // Whether to emit ANSI colour on out. Already resolved from --color,
-    // NO_COLOR, and whether out is a terminal -- see resolve_color.
+    // Whether to emit ANSI color on out.
     bool use_color = false;
 };
 

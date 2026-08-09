@@ -15,5 +15,6 @@ int main(int argc, char** argv)
     for (int i = 1; i < argc; ++i) args.emplace_back(argv[i]);
 
     cartomancer::cli::streams sink{.out = std::cout, .err = std::cerr};
+
     return cartomancer::run(args, sink);
 }

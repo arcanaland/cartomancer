@@ -1,12 +1,7 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// The command-line surface as data: every subcommand and flag the binary
-// accepts, each carrying its own help text.
-//
-// The parser and --help both read these tables, so a flag cannot exist without
-// being documented, and the documentation cannot describe a flag that does not
-// exist. Adding a flag is one entry here and nothing else.
+// The command-line surface as data.
 
 #pragma once
 
@@ -22,8 +17,6 @@
 namespace cartomancer::cli
 {
 
-// Which --help block a flag is listed under. A set rather than one value
-// because --format is documented under both subcommands.
 enum class help_section : std::uint8_t
 {
     none = 0,
@@ -50,23 +43,21 @@ struct parse_state
     bool color_set = false;
 };
 
-// What every `apply_fn` and every step of the parse returns: nothing on
-// success, the message the user sees on failure.
 using outcome = std::expected<void, std::string>;
 
-// Applies one flag to `opts`.
+// Applies one flag to opts.
 //
-// `value` is empty for a flag that takes none, which never reads it.
+// value is empty for a flag that takes none
 //
 // @return an error message when the value is not one this flag accepts.
 using apply_fn = outcome (*)(std::string_view value, options& opts, parse_state& state);
 
 struct flag
 {
-    // Spelled with the leading dashes, as it appears on the command line.
+    // Spelled with leading dashes
     std::string_view name;
 
-    // How the value is named in --help, or "" for a flag that takes none.
+    // How the value is named in --help
     std::string_view metavar;
 
     std::string_view help;
@@ -163,7 +154,7 @@ struct subcommand
 {
     std::string_view name;
 
-    // The positional the subcommand accepts, as it appears in --help.
+    // The positional the subcommand accepts
     std::string_view metavar;
 
     std::string_view help;
@@ -186,9 +177,6 @@ inline constexpr std::array subcommands{
     },
 };
 
-// Every flag is spelled as a long flag, is documented, is reachable from some
-// --help block, and appears once. A table entry that fails any of these would
-// otherwise produce a flag that works but is invisible, or one listed twice.
 consteval bool flags_are_well_formed()
 {
     for (auto const& one : flags)
@@ -224,22 +212,16 @@ consteval bool subcommands_are_well_formed()
     return true;
 }
 
-static_assert(flags_are_well_formed(), "a flag is undocumented, unreachable, or duplicated");
+static_assert(flags_are_well_formed(), "a flag is undocumented, unreachable or duplicated");
 
 static_assert(
-    subcommands_are_well_formed(), "a subcommand is undocumented, duplicated, or dispatches nowhere"
+    subcommands_are_well_formed(), "a subcommand is undocumented, duplicated or dispatches nowhere"
 );
 
-// A tripwire, not a derivation: nothing here can enumerate `command`, so an
-// enumerator added without a spelling would otherwise be unreachable and
-// undocumented in silence. Bumping this number is the prompt to add the entry.
-// P2996's `enumerators_of(^^command)` would make this check real.
-static_assert(subcommands.size() == 2, "a command was added or removed; is it in the table?");
+static_assert(subcommands.size() == 2, "a command was added or removed without updating this assert");
 
-// The flag whose spelling is `name`, or nullptr when it is not one of ours.
 [[nodiscard]] flag const* find_flag(std::string_view name) noexcept;
 
-// The subcommand `word` names, or nullptr when it is not one of ours.
 [[nodiscard]] subcommand const* find_subcommand(std::string_view word) noexcept;
 
 }  // namespace cartomancer::cli

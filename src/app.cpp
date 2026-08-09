@@ -35,6 +35,7 @@ void write_version(cli::streams sink)
 
 [[nodiscard]] std::optional<std::string_view> ambient_no_color()
 {
+    // https://no-color.org <3
     char const* value = std::getenv("NO_COLOR");
     if (value == nullptr)
         return std::nullopt;
@@ -92,7 +93,6 @@ void write_version(cli::streams sink)
     std::unreachable();
 }
 
-// The one place an `exit_code` becomes the process's integer.
 [[nodiscard]] int run_parsed(
     cli::parse_result const& parsed, arcana::library_options lib_options, cli::streams sink
 )
@@ -116,10 +116,6 @@ int run(std::span<std::string_view const> args, cli::streams sink)
 {
     auto const parsed = cli::parse(args);
 
-    // A failed parse yields no options to consult, so colour falls back to the
-    // ambient answer. Nothing on the usage-error path is coloured, so the only
-    // effect is that colour no longer depends on how far the parse got before
-    // it gave up.
     auto const requested = parsed.value_or(cli::options{});
 
     sink.use_color = cli::resolve_color(

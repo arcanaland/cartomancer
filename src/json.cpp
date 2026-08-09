@@ -24,6 +24,7 @@ document from_path(std::optional<std::filesystem::path> const& value)
 {
     if (!value.has_value())
         return nullptr;
+
     return from_path(*value);
 }
 

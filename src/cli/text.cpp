@@ -16,7 +16,7 @@ namespace cartomancer::cli
 namespace
 {
 
-// "--format text|json" -- the left column of one --help line.
+// the left column of one --help line.
 [[nodiscard]] constexpr std::size_t spelling_width(
     std::string_view name, std::string_view metavar
 ) noexcept
@@ -64,7 +64,7 @@ constexpr void append_entry(
     out += '\n';
 }
 
-// The flags in `which`, one line each, in table order.
+// The flags in `which` in table order.
 constexpr void append_flags(std::string& out, help_section which)
 {
     for (auto const& one : flags)
@@ -109,8 +109,6 @@ Exit codes:
     return out;
 }
 
-// Laid out at compile time into static storage, so --help costs no allocation
-// and usage_text() can honestly promise not to throw.
 constexpr auto usage_storage = []
 {
     constexpr std::size_t size = build_usage().size();

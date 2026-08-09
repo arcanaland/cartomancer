@@ -30,7 +30,7 @@ bool resolve_color(
     if (explicitly_set)
         return mode == color_mode::automatic ? tty : mode != color_mode::never;
 
-    // https://no-color.org <3
+    // https://no-color.org rule
     if (no_color.has_value() && !no_color->empty())
         return false;
 
