@@ -247,14 +247,16 @@ cli::exit_code code_for(std::span<arcana::diagnostic const> reported) noexcept
     return warned ? cli::exit_code::warnings : cli::exit_code::ok;
 }
 
-int run_validate(cli::options const& opts, arcana::deck_library const& library, cli::streams sink)
+cli::exit_code run_validate(
+    cli::options const& opts, arcana::deck_library const& library, cli::streams sink
+)
 {
     auto const what = resolve(library, opts);
 
     if (!what.deck.has_value())
     {
         write_unloadable(what, opts, sink);
-        return cli::to_int(cli::exit_code::unloadable);
+        return cli::exit_code::unloadable;
     }
 
     auto const& subject = **what.deck;
@@ -266,7 +268,7 @@ int run_validate(cli::options const& opts, arcana::deck_library const& library, 
     else
         write_text(what, reported, sink);
 
-    return cli::to_int(code_for(reported));
+    return code_for(reported);
 }
 
 }  // namespace cartomancer

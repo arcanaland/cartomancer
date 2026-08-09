@@ -19,7 +19,7 @@ namespace cartomancer
 //
 // Exits 0/1/2 by the worst diagnostic left after the --level floor, or 3 when
 // the deck could not be loaded at all.
-[[nodiscard]] int run_validate(
+[[nodiscard]] cli::exit_code run_validate(
     cli::options const& opts, arcana::deck_library const& library, cli::streams sink
 );
 

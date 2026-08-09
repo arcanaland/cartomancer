@@ -54,7 +54,7 @@ namespace
 
 }  // namespace
 
-int run_list_codes(cli::options const& opts, cli::streams sink)
+cli::exit_code run_list_codes(cli::options const& opts, cli::streams sink)
 {
     auto const catalogue = arcana::rules();
 
@@ -64,7 +64,7 @@ int run_list_codes(cli::options const& opts, cli::streams sink)
         for (auto const& entry : catalogue) rules.push_back(rule_json(entry));
 
         json::write(sink.out, json::document{{"rules", std::move(rules)}});
-        return cli::to_int(cli::exit_code::ok);
+        return cli::exit_code::ok;
     }
 
     for (auto const& entry : catalogue)
@@ -76,17 +76,17 @@ int run_list_codes(cli::options const& opts, cli::streams sink)
         );
     }
 
-    return cli::to_int(cli::exit_code::ok);
+    return cli::exit_code::ok;
 }
 
-int run_explain(cli::options const& opts, std::string_view code, cli::streams sink)
+cli::exit_code run_explain(cli::options const& opts, std::string_view code, cli::streams sink)
 {
     auto const* entry = arcana::find_rule(code);
 
     if (entry == nullptr)
     {
         sink.err << std::format("no such diagnostic code: {}\n", code);
-        return cli::to_int(cli::exit_code::usage);
+        return cli::exit_code::usage;
     }
 
     if (opts.format == cli::output_format::json)
@@ -95,7 +95,7 @@ int run_explain(cli::options const& opts, std::string_view code, cli::streams si
         document["explanation"] = json::from_view(entry->explanation);
 
         json::write(sink.out, document);
-        return cli::to_int(cli::exit_code::ok);
+        return cli::exit_code::ok;
     }
 
     sink.out << std::format("{} ({})\n\n", entry->code, cli::severity_name(entry->default_level));
@@ -107,7 +107,7 @@ int run_explain(cli::options const& opts, std::string_view code, cli::streams si
     if (entry->experimental)
         sink.out << "experimental: yes\n";
 
-    return cli::to_int(cli::exit_code::ok);
+    return cli::exit_code::ok;
 }
 
 }  // namespace cartomancer

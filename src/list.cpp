@@ -128,14 +128,16 @@ void write_json(arcana::deck_library const& library, cli::streams sink)
 
 }  // namespace
 
-int run_list(cli::options const& opts, arcana::deck_library const& library, cli::streams sink)
+cli::exit_code run_list(
+    cli::options const& opts, arcana::deck_library const& library, cli::streams sink
+)
 {
     if (opts.format == cli::output_format::json)
         write_json(library, sink);
     else
         write_text(library, sink);
 
-    return cli::to_int(cli::exit_code::ok);
+    return cli::exit_code::ok;
 }
 
 }  // namespace cartomancer

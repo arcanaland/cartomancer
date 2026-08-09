@@ -22,7 +22,7 @@ constexpr bool pipe = false;
 [[nodiscard]] options parse_args(std::initializer_list<std::string_view> args)
 {
     std::vector<std::string_view> const argv(args);
-    return parse(argv).opts;
+    return parse(argv).value();
 }
 
 }  // namespace

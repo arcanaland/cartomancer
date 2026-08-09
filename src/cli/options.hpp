@@ -1,9 +1,6 @@
 // SPDX-FileCopyrightText: 2026 Adam Fidel
 // SPDX-License-Identifier: MIT
 
-// The shape of a parsed command line. Kept apart from the parser so a command
-// can take `options` without pulling in the argument walker.
-
 #pragma once
 
 #include "color.hpp"
@@ -19,10 +16,10 @@ namespace cartomancer::cli
 
 enum class exit_code : std::uint8_t
 {
-    // No diagnostics at or above --level.
+    // No diagnostics at or above level.
     ok = 0,
 
-    // Warnings at or above --level and no errors.
+    // Warnings at or above level and no errors.
     warnings = 1,
 
     // At least one error diagnostic.
@@ -61,14 +58,12 @@ struct options
     // --deck NAME
     std::optional<std::string> deck;
 
-    // The positional TARGET: a directory path, or a discovered deck's
-    // directory name.
+    // The positional TARGET
     std::optional<std::string> target;
 
     output_format format = output_format::text;
 
     // The --level floor
-    // everything; we filter its result.
     arcana::severity level = arcana::severity::info;
 
     // --explain CODE

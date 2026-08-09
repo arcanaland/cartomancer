@@ -15,7 +15,7 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
-#include <optional>
+#include <expected>
 #include <string>
 #include <string_view>
 
@@ -50,13 +50,16 @@ struct parse_state
     bool color_set = false;
 };
 
+// What every `apply_fn` and every step of the parse returns: nothing on
+// success, the message the user sees on failure.
+using outcome = std::expected<void, std::string>;
+
 // Applies one flag to `opts`.
 //
 // `value` is empty for a flag that takes none, which never reads it.
 //
 // @return an error message when the value is not one this flag accepts.
-using apply_fn =
-    std::optional<std::string> (*)(std::string_view value, options& opts, parse_state& state);
+using apply_fn = outcome (*)(std::string_view value, options& opts, parse_state& state);
 
 struct flag
 {
@@ -79,19 +82,15 @@ struct flag
     }
 };
 
-std::optional<std::string> apply_deck(std::string_view value, options& opts, parse_state& state);
-std::optional<std::string> apply_explain(std::string_view value, options& opts, parse_state& state);
-std::optional<std::string> apply_format(std::string_view value, options& opts, parse_state& state);
-std::optional<std::string> apply_level(std::string_view value, options& opts, parse_state& state);
-std::optional<std::string> apply_color(std::string_view value, options& opts, parse_state& state);
-std::optional<std::string> apply_no_color(
-    std::string_view value, options& opts, parse_state& state
-);
-std::optional<std::string> apply_list_codes(
-    std::string_view value, options& opts, parse_state& state
-);
-std::optional<std::string> apply_version(std::string_view value, options& opts, parse_state& state);
-std::optional<std::string> apply_help(std::string_view value, options& opts, parse_state& state);
+outcome apply_deck(std::string_view value, options& opts, parse_state& state);
+outcome apply_explain(std::string_view value, options& opts, parse_state& state);
+outcome apply_format(std::string_view value, options& opts, parse_state& state);
+outcome apply_level(std::string_view value, options& opts, parse_state& state);
+outcome apply_color(std::string_view value, options& opts, parse_state& state);
+outcome apply_no_color(std::string_view value, options& opts, parse_state& state);
+outcome apply_list_codes(std::string_view value, options& opts, parse_state& state);
+outcome apply_version(std::string_view value, options& opts, parse_state& state);
+outcome apply_help(std::string_view value, options& opts, parse_state& state);
 
 // Declaration order is --help order within each block.
 inline constexpr std::array flags{

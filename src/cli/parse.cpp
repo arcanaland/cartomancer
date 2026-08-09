@@ -5,7 +5,10 @@
 
 #include "surface.hpp"
 
+#include <expected>
 #include <format>
+#include <optional>
+#include <string>
 #include <utility>
 
 namespace cartomancer::cli
@@ -69,47 +72,44 @@ class cursor
 // Handle one `--flag`.
 //
 // @return an error message when the flag or its value is not recognised.
-[[nodiscard]] std::optional<std::string> apply_flag(
+[[nodiscard]] outcome apply_flag(
     token const& spelled, cursor& args, options& opts, parse_state& state
 )
 {
     flag const* const found = find_flag(spelled.name);
     if (found == nullptr)
-        return std::format("unknown flag: {}", spelled.name);
+        return std::unexpected(std::format("unknown flag: {}", spelled.name));
 
-    // Reject before consuming: a flag that takes no value must not swallow the
-    // word after it.
+    // Reject before consuming
     if (!found->takes_value())
         return found->apply("", opts, state);
 
     auto const value = args.value_for(spelled);
     if (!value.has_value())
-        return std::format("{} needs a value", spelled.name);
+        return std::unexpected(std::format("{} needs a value", spelled.name));
 
     return found->apply(*value, opts, state);
 }
 
 // Handle one bare word: the subcommand if we have not seen one, else TARGET.
-[[nodiscard]] std::optional<std::string> apply_positional(
-    std::string_view word, options& opts, bool& saw_command
-)
+[[nodiscard]] outcome apply_positional(std::string_view word, options& opts, bool& saw_command)
 {
     if (!saw_command)
     {
         subcommand const* const which = find_subcommand(word);
         if (which == nullptr)
-            return std::format("unknown subcommand: {}", word);
+            return std::unexpected(std::format("unknown subcommand: {}", word));
 
         opts.which = which->which;
         saw_command = true;
-        return std::nullopt;
+        return {};
     }
 
     if (opts.target.has_value())
-        return std::format("unexpected argument: {}", word);
+        return std::unexpected(std::format("unexpected argument: {}", word));
 
     opts.target = std::string(word);
-    return std::nullopt;
+    return {};
 }
 
 }  // namespace
@@ -125,30 +125,20 @@ parse_result parse(std::span<std::string_view const> args)
     {
         auto const argument = walk.take();
 
-        std::optional<std::string> failure;
-        if (argument.starts_with('-') && argument != "-")
-        {
-            auto const spelled = split(argument);
-            failure = apply_flag(spelled, walk, opts, state);
-        }
-        else
-        {
-            failure = apply_positional(argument, opts, saw_command);
-        }
+        auto applied = argument.starts_with('-') && argument != "-"
+                           ? apply_flag(split(argument), walk, opts, state)
+                           : apply_positional(argument, opts, saw_command);
 
-        if (failure.has_value())
-            return {.opts = opts, .error = std::move(failure)};
+        if (!applied.has_value())
+            return std::unexpected(std::move(applied).error());
     }
 
     if (opts.deck.has_value() && opts.target.has_value())
-        return {
-            .opts = opts,
-            .error = "pass either --deck NAME or a positional TARGET, not both",
-        };
+        return std::unexpected("pass either --deck NAME or a positional TARGET, not both");
 
     opts.color_explicit = state.color_set;
 
-    return {.opts = opts, .error = std::nullopt};
+    return opts;
 }
 
 }  // namespace cartomancer::cli

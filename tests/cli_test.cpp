@@ -29,22 +29,22 @@ namespace
 TEST_CASE("a bare invocation asks for no command", "[cli]")
 {
     auto const parsed = parse_args({});
-    REQUIRE_FALSE(parsed.error.has_value());
-    REQUIRE(parsed.opts.which == command::none);
+    REQUIRE(parsed.has_value());
+    REQUIRE(parsed->which == command::none);
 }
 
 TEST_CASE("subcommands are recognised", "[cli]")
 {
-    REQUIRE(parse_args({"validate"}).opts.which == command::validate);
-    REQUIRE(parse_args({"list"}).opts.which == command::list);
+    REQUIRE(parse_args({"validate"})->which == command::validate);
+    REQUIRE(parse_args({"list"})->which == command::list);
 }
 
 TEST_CASE("show and draw are not stubbed, so they are unknown subcommands", "[cli]")
 {
     // ADR-009 specifies them; TASK-010 deliberately does not ship them, and an
     // unimplemented subcommand that exists is worse than one that does not.
-    REQUIRE(parse_args({"show"}).error.has_value());
-    REQUIRE(parse_args({"draw"}).error.has_value());
+    REQUIRE_FALSE(parse_args({"show"}).has_value());
+    REQUIRE_FALSE(parse_args({"draw"}).has_value());
     REQUIRE(run_cli({"show", "major_arcana.00"}).status == 4);
     REQUIRE(run_cli({"draw"}).status == 4);
 }
@@ -68,33 +68,31 @@ TEST_CASE("an unknown flag does not swallow the argument after it", "[cli]")
     // Otherwise `cartomancer --nonsense list` would report a stranger error
     // than the one the user made.
     auto const parsed = parse_args({"--nonsense", "list"});
-    REQUIRE(parsed.error.has_value());
-    REQUIRE(parsed.error.value_or("") == "unknown flag: --nonsense");
+    REQUIRE_FALSE(parsed.has_value());
+    REQUIRE(parsed.error() == "unknown flag: --nonsense");
 }
 
 TEST_CASE("flag values are accepted both attached and separated", "[cli]")
 {
-    REQUIRE(parse_args({"validate", "--level=error"}).opts.level == arcana::severity::error);
-    REQUIRE(parse_args({"validate", "--level", "error"}).opts.level == arcana::severity::error);
-    REQUIRE(parse_args({"list", "--format=json"}).opts.format == output_format::json);
-    REQUIRE(parse_args({"list", "--format", "json"}).opts.format == output_format::json);
+    REQUIRE(parse_args({"validate", "--level=error"})->level == arcana::severity::error);
+    REQUIRE(parse_args({"validate", "--level", "error"})->level == arcana::severity::error);
+    REQUIRE(parse_args({"list", "--format=json"})->format == output_format::json);
+    REQUIRE(parse_args({"list", "--format", "json"})->format == output_format::json);
 }
 
 TEST_CASE("every severity name parses", "[cli]")
 {
-    REQUIRE(
-        parse_args({"validate", "--level", "pedantic"}).opts.level == arcana::severity::pedantic
-    );
-    REQUIRE(parse_args({"validate", "--level", "info"}).opts.level == arcana::severity::info);
-    REQUIRE(parse_args({"validate", "--level", "warning"}).opts.level == arcana::severity::warning);
-    REQUIRE(parse_args({"validate", "--level", "error"}).opts.level == arcana::severity::error);
+    REQUIRE(parse_args({"validate", "--level", "pedantic"})->level == arcana::severity::pedantic);
+    REQUIRE(parse_args({"validate", "--level", "info"})->level == arcana::severity::info);
+    REQUIRE(parse_args({"validate", "--level", "warning"})->level == arcana::severity::warning);
+    REQUIRE(parse_args({"validate", "--level", "error"})->level == arcana::severity::error);
 }
 
 TEST_CASE("the default level is info and the default format is text", "[cli]")
 {
     auto const parsed = parse_args({"validate"});
-    REQUIRE(parsed.opts.level == arcana::severity::info);
-    REQUIRE(parsed.opts.format == output_format::text);
+    REQUIRE(parsed->level == arcana::severity::info);
+    REQUIRE(parsed->format == output_format::text);
 }
 
 TEST_CASE("an unparseable flag value is a usage error", "[cli]")
@@ -122,8 +120,8 @@ TEST_CASE("the flag --deck and TARGET together are a usage error", "[cli]")
 
 TEST_CASE("the flag --deck alone and TARGET alone are both fine", "[cli]")
 {
-    REQUIRE_FALSE(parse_args({"validate", "--deck", "clean-deck"}).error.has_value());
-    REQUIRE_FALSE(parse_args({"validate", "clean-deck"}).error.has_value());
+    REQUIRE(parse_args({"validate", "--deck", "clean-deck"}).has_value());
+    REQUIRE(parse_args({"validate", "clean-deck"}).has_value());
 }
 
 TEST_CASE("a second positional after TARGET is a usage error", "[cli]")
@@ -161,8 +159,8 @@ TEST_CASE("the flag --version prints cartomancer and the libarcana it linked", "
 
 TEST_CASE("global flags are accepted before and after the subcommand", "[cli]")
 {
-    REQUIRE(parse_args({"--format", "json", "list"}).opts.format == output_format::json);
-    REQUIRE(parse_args({"list", "--format", "json"}).opts.format == output_format::json);
+    REQUIRE(parse_args({"--format", "json", "list"})->format == output_format::json);
+    REQUIRE(parse_args({"list", "--format", "json"})->format == output_format::json);
 }
 
 TEST_CASE("exit codes are the ADR-009 integers", "[cli]")

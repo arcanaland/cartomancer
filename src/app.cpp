@@ -42,29 +42,27 @@ void write_version(cli::streams sink)
     return std::string_view(value);
 }
 
-[[nodiscard]] int dispatch(
-    cli::parse_result const& parsed, arcana::library_options lib_options, cli::streams sink
+[[nodiscard]] cli::exit_code report_usage_error(std::string_view message, cli::streams sink)
+{
+    sink.err << std::format("cartomancer: {}\n", message);
+    sink.err << "Usage: cartomancer --help\n";
+    return cli::exit_code::usage;
+}
+
+[[nodiscard]] cli::exit_code dispatch(
+    cli::options const& opts, arcana::library_options lib_options, cli::streams sink
 )
 {
-    if (parsed.error.has_value())
-    {
-        sink.err << std::format("cartomancer: {}\n", *parsed.error);
-        sink.err << "Usage: cartomancer --help\n";
-        return cli::to_int(cli::exit_code::usage);
-    }
-
-    auto const& opts = parsed.opts;
-
     if (opts.help)
     {
         sink.out << cli::usage_text();
-        return cli::to_int(cli::exit_code::ok);
+        return cli::exit_code::ok;
     }
 
     if (opts.version)
     {
         write_version(sink);
-        return cli::to_int(cli::exit_code::ok);
+        return cli::exit_code::ok;
     }
 
     if (opts.list_codes)
@@ -76,7 +74,7 @@ void write_version(cli::streams sink)
     if (opts.which == cli::command::none)
     {
         sink.out << cli::usage_text();
-        return cli::to_int(cli::exit_code::ok);
+        return cli::exit_code::ok;
     }
 
     arcana::deck_library const library(std::move(lib_options));
@@ -94,25 +92,41 @@ void write_version(cli::streams sink)
     std::unreachable();
 }
 
+// The one place an `exit_code` becomes the process's integer.
+[[nodiscard]] int run_parsed(
+    cli::parse_result const& parsed, arcana::library_options lib_options, cli::streams sink
+)
+{
+    if (!parsed.has_value())
+        return cli::to_int(report_usage_error(parsed.error(), sink));
+
+    return cli::to_int(dispatch(*parsed, std::move(lib_options), sink));
+}
+
 }  // namespace
 
 int run_with_library(
     std::span<std::string_view const> args, arcana::library_options lib_options, cli::streams sink
 )
 {
-    return dispatch(cli::parse(args), std::move(lib_options), sink);
+    return run_parsed(cli::parse(args), std::move(lib_options), sink);
 }
 
 int run(std::span<std::string_view const> args, cli::streams sink)
 {
     auto const parsed = cli::parse(args);
 
+    // A failed parse yields no options to consult, so colour falls back to the
+    // ambient answer. Nothing on the usage-error path is coloured, so the only
+    // effect is that colour no longer depends on how far the parse got before
+    // it gave up.
+    auto const requested = parsed.value_or(cli::options{});
+
     sink.use_color = cli::resolve_color(
-        parsed.opts.color, parsed.opts.color_explicit, ambient_no_color(),
-        isatty(STDOUT_FILENO) == 1
+        requested.color, requested.color_explicit, ambient_no_color(), isatty(STDOUT_FILENO) == 1
     );
 
-    return dispatch(parsed, {}, sink);
+    return run_parsed(parsed, {}, sink);
 }
 
 }  // namespace cartomancer

@@ -3,7 +3,12 @@
 
 #include "surface.hpp"
 
+#include <expected>
 #include <format>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
 
 namespace cartomancer::cli
 {
@@ -11,9 +16,9 @@ namespace cartomancer::cli
 namespace
 {
 
-[[nodiscard]] std::string bad_value(std::string_view flag, std::string_view value)
+[[nodiscard]] std::unexpected<std::string> bad_value(std::string_view flag, std::string_view value)
 {
-    return std::format("unrecognised value for {}: {}", flag, value);
+    return std::unexpected(std::format("unrecognised value for {}: {}", flag, value));
 }
 
 [[nodiscard]] std::optional<arcana::severity> parse_severity(std::string_view name) noexcept
@@ -40,39 +45,39 @@ namespace
 
 }  // namespace
 
-std::optional<std::string> apply_deck(std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
+outcome apply_deck(std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
 {
     opts.deck = std::string(value);
-    return std::nullopt;
+    return {};
 }
 
-std::optional<std::string> apply_explain(std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
+outcome apply_explain(std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
 {
     opts.explain = std::string(value);
-    return std::nullopt;
+    return {};
 }
 
-std::optional<std::string> apply_format(std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
+outcome apply_format(std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
 {
     auto const format = parse_format_value(value);
     if (!format.has_value())
         return bad_value("--format", value);
 
     opts.format = *format;
-    return std::nullopt;
+    return {};
 }
 
-std::optional<std::string> apply_level(std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
+outcome apply_level(std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
 {
     auto const level = parse_severity(value);
     if (!level.has_value())
         return bad_value("--level", value);
 
     opts.level = *level;
-    return std::nullopt;
+    return {};
 }
 
-std::optional<std::string> apply_color(std::string_view value, options& opts, parse_state& state)
+outcome apply_color(std::string_view value, options& opts, parse_state& state)
 {
     auto const mode = parse_color_mode(value);
     if (!mode.has_value())
@@ -80,32 +85,38 @@ std::optional<std::string> apply_color(std::string_view value, options& opts, pa
 
     opts.color = *mode;
     state.color_set = true;
-    return std::nullopt;
+    return {};
 }
 
-std::optional<std::string> apply_no_color([[maybe_unused]] std::string_view value, options& opts, parse_state& state)
+outcome apply_no_color([[maybe_unused]] std::string_view value, options& opts, parse_state& state)
 {
     opts.color = color_mode::never;
     state.color_set = true;
-    return std::nullopt;
+    return {};
 }
 
-std::optional<std::string> apply_list_codes([[maybe_unused]] std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
+outcome apply_list_codes(
+    [[maybe_unused]] std::string_view value, options& opts, [[maybe_unused]] parse_state& state
+)
 {
     opts.list_codes = true;
-    return std::nullopt;
+    return {};
 }
 
-std::optional<std::string> apply_version([[maybe_unused]] std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
+outcome apply_version(
+    [[maybe_unused]] std::string_view value, options& opts, [[maybe_unused]] parse_state& state
+)
 {
     opts.version = true;
-    return std::nullopt;
+    return {};
 }
 
-std::optional<std::string> apply_help([[maybe_unused]] std::string_view value, options& opts, [[maybe_unused]] parse_state& state)
+outcome apply_help(
+    [[maybe_unused]] std::string_view value, options& opts, [[maybe_unused]] parse_state& state
+)
 {
     opts.help = true;
-    return std::nullopt;
+    return {};
 }
 
 flag const* find_flag(std::string_view name) noexcept

@@ -12,12 +12,14 @@ namespace cartomancer
 {
 
 // Report every rule that will be used for deck validation
-[[nodiscard]] int run_list_codes(cli::options const& opts, cli::streams sink);
+[[nodiscard]] cli::exit_code run_list_codes(cli::options const& opts, cli::streams sink);
 
 // Report an explanation for a given validation code
 //
 // @param code the rule code asked for
 // @param exit 4 for a code that is not in the catalogue
-[[nodiscard]] int run_explain(cli::options const& opts, std::string_view code, cli::streams sink);
+[[nodiscard]] cli::exit_code run_explain(
+    cli::options const& opts, std::string_view code, cli::streams sink
+);
 
 }  // namespace cartomancer
