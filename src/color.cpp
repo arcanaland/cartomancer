@@ -22,10 +22,7 @@ std::optional<color_mode> parse_color_mode(std::string_view when) noexcept
 }
 
 bool resolve_color(
-    color_mode mode,
-    bool explicitly_set,
-    std::optional<std::string_view> no_color,
-    bool tty
+    color_mode mode, bool explicitly_set, std::optional<std::string_view> no_color, bool tty
 ) noexcept
 {
     // An explicit --color beats the ambient NO_COLOR, including --color=auto,

@@ -58,21 +58,20 @@ void write_text(arcana::deck_library const& library, streams sink)
     if (decks.empty() && malformed.empty())
     {
         sink.out << "no decks found in:\n";
-        for (auto const& root : library.roots())
-            sink.out << std::format("  {}\n", root.string());
+        for (auto const& root : library.roots()) sink.out << std::format("  {}\n", root.string());
         return;
     }
 
     auto const widest = column_widths(decks);
     for (auto const& summary : decks)
     {
-        sink.out << trim_end(std::format(
-                        "{}  {}  {:>4} cards  {}",
-                        pad(summary.directory_name, widest.directory_name),
-                        pad(summary.name, widest.name),
-                        summary.card_count,
-                        summary.id
-                    ))
+        sink.out << trim_end(
+                        std::format(
+                            "{}  {}  {:>4} cards  {}",
+                            pad(summary.directory_name, widest.directory_name),
+                            pad(summary.name, widest.name), summary.card_count, summary.id
+                        )
+                    )
                  << '\n';
     }
 
@@ -91,8 +90,7 @@ void write_json(arcana::deck_library const& library, streams sink)
 
     out.key("roots");
     out.begin_array();
-    for (auto const& root : library.roots())
-        out.string(root.string());
+    for (auto const& root : library.roots()) out.string(root.string());
     out.end_array();
 
     out.key("decks");

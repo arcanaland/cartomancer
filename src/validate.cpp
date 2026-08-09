@@ -64,10 +64,12 @@ struct resolution
 
         return {
             .target = name,
-            .deck = std::unexpected(arcana::error{
-                .code = arcana::error_code::not_found,
-                .message = message,
-            }),
+            .deck = std::unexpected(
+                arcana::error{
+                    .code = arcana::error_code::not_found,
+                    .message = message,
+                }
+            ),
         };
     }
 
@@ -114,8 +116,7 @@ using tally = std::array<std::size_t, 4>;
 [[nodiscard]] tally count(std::span<arcana::diagnostic const> reported)
 {
     tally counts{};
-    for (auto const& found : reported)
-        ++counts.at(static_cast<std::size_t>(found.level));
+    for (auto const& found : reported) ++counts.at(static_cast<std::size_t>(found.level));
     return counts;
 }
 
@@ -132,24 +133,17 @@ void write_text(resolution const& what, std::span<arcana::diagnostic const> repo
     {
         auto const where = location_of(found);
         sink.out << std::format(
-            "{}{}{}: {}: {}{}\n",
-            severity_color(found.level, colored),
-            severity_name(found.level),
-            color_reset(colored),
-            found.code,
-            found.message,
+            "{}{}{}: {}: {}{}\n", severity_color(found.level, colored), severity_name(found.level),
+            color_reset(colored), found.code, found.message,
             where.empty() ? std::string{} : std::format(" ({})", where)
         );
     }
 
     auto const counts = count(reported);
     sink.out << std::format(
-        "\n{}: {} error(s), {} warning(s), {} info, {} pedantic\n",
-        what.target,
-        tally_of(counts, arcana::severity::error),
-        tally_of(counts, arcana::severity::warning),
-        tally_of(counts, arcana::severity::info),
-        tally_of(counts, arcana::severity::pedantic)
+        "\n{}: {} error(s), {} warning(s), {} info, {} pedantic\n", what.target,
+        tally_of(counts, arcana::severity::error), tally_of(counts, arcana::severity::warning),
+        tally_of(counts, arcana::severity::info), tally_of(counts, arcana::severity::pedantic)
     );
 }
 

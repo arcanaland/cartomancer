@@ -37,10 +37,7 @@ enum class color_mode : std::uint8_t
 // @param no_color    the NO_COLOR environment variable, if present
 // @param tty         whether the output stream is a terminal
 [[nodiscard]] bool resolve_color(
-    color_mode mode,
-    bool explicitly_set,
-    std::optional<std::string_view> no_color,
-    bool tty
+    color_mode mode, bool explicitly_set, std::optional<std::string_view> no_color, bool tty
 ) noexcept;
 
 // The SGR sequence a severity is printed in, or "" when colour is off.

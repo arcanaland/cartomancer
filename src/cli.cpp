@@ -108,8 +108,8 @@ class cursor
 
 [[nodiscard]] bool takes_value(std::string_view flag) noexcept
 {
-    return flag == "--deck" || flag == "--explain" || flag == "--format" || flag == "--level"
-           || flag == "--color";
+    return flag == "--deck" || flag == "--explain" || flag == "--format" || flag == "--level" ||
+           flag == "--color";
 }
 
 // State the flag loop threads through, beyond the options themselves.
@@ -304,13 +304,13 @@ std::string_view severity_name(arcana::severity level) noexcept
 
 std::string_view usage_text() noexcept
 {
-    return R"(cartomancer - view, validate and manage tarot decks
+    return R"(cartomancer - swiss-army knife for tarot decks
 
 Usage:
   cartomancer <command> [flags] [TARGET]
 
 Commands:
-  validate [TARGET]   judge a deck against the arcana rule catalogue
+  validate [TARGET]   judge a deck against the tarot deck spec
   list                list the decks installed on this system
 
 Validate flags:

@@ -71,8 +71,7 @@ std::string escape(std::string_view value)
 
 void writer::indent()
 {
-    for (std::size_t level = 0; level < depth_ * indent_width; ++level)
-        *out_ << ' ';
+    for (std::size_t level = 0; level < depth_ * indent_width; ++level) *out_ << ' ';
 }
 
 // Emit whatever separates this value from the previous one: a comma between

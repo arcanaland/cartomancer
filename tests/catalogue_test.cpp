@@ -32,12 +32,13 @@ TEST_CASE("the flag --list-codes prints one line per catalogued rule", "[catalog
     REQUIRE(line_count(result.out) == arcana::rules().size());
 }
 
-TEST_CASE("the flag --list-codes reports the whole catalogue, not the implemented subset", "[catalogue]")
+TEST_CASE(
+    "the flag --list-codes reports the whole catalogue, not the implemented subset", "[catalogue]"
+)
 {
     auto const result = run_cli({"--list-codes"});
 
-    for (auto const& entry : arcana::rules())
-        REQUIRE(result.out.contains(entry.code));
+    for (auto const& entry : arcana::rules()) REQUIRE(result.out.contains(entry.code));
 }
 
 TEST_CASE("the flag --list-codes carries no implementation-state column", "[catalogue]")
@@ -68,8 +69,7 @@ TEST_CASE("the flag --list-codes --format json lists every rule", "[catalogue]")
     REQUIRE(result.status == 0);
     REQUIRE(result.out.contains("\"rules\""));
     REQUIRE(result.out.contains("\"code\""));
-    for (auto const& entry : arcana::rules())
-        REQUIRE(result.out.contains(entry.code));
+    for (auto const& entry : arcana::rules()) REQUIRE(result.out.contains(entry.code));
 }
 
 TEST_CASE("the flag --explain prints one catalogue entry", "[catalogue]")

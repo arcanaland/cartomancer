@@ -11,7 +11,7 @@
 #include <span>
 #include <string_view>
 
-using namespace cartomancer;          // NOLINT(google-build-using-namespace)
+using namespace cartomancer;           // NOLINT(google-build-using-namespace)
 using namespace cartomancer::testing;  // NOLINT(google-build-using-namespace)
 
 namespace
@@ -81,8 +81,9 @@ TEST_CASE("flag values are accepted both attached and separated", "[cli]")
 
 TEST_CASE("every severity name parses", "[cli]")
 {
-    REQUIRE(parse_args({"validate", "--level", "pedantic"}).opts.level
-            == arcana::severity::pedantic);
+    REQUIRE(
+        parse_args({"validate", "--level", "pedantic"}).opts.level == arcana::severity::pedantic
+    );
     REQUIRE(parse_args({"validate", "--level", "info"}).opts.level == arcana::severity::info);
     REQUIRE(parse_args({"validate", "--level", "warning"}).opts.level == arcana::severity::warning);
     REQUIRE(parse_args({"validate", "--level", "error"}).opts.level == arcana::severity::error);

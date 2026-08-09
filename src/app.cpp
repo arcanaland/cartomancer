@@ -11,12 +11,12 @@
 #include <arcana/version.hpp>
 #include <cartomancer/version.hpp>
 
+#include <unistd.h>
 #include <cstdlib>
 #include <format>
 #include <optional>
 #include <ostream>
 #include <string_view>
-#include <unistd.h>
 #include <utility>
 
 namespace cartomancer
@@ -111,9 +111,7 @@ int run(std::span<std::string_view const> args, streams sink)
     auto const parsed = parse(args);
 
     sink.colored = resolve_color(
-        parsed.opts.color,
-        parsed.opts.color_explicit,
-        ambient_no_color(),
+        parsed.opts.color, parsed.opts.color_explicit, ambient_no_color(),
         isatty(STDOUT_FILENO) == 1
     );
 

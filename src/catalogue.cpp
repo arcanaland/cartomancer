@@ -69,8 +69,7 @@ int run_list_codes(options const& opts, streams sink)
         out.begin_object();
         out.key("rules");
         out.begin_array();
-        for (auto const& entry : catalogue)
-            write_rule_json(out, entry);
+        for (auto const& entry : catalogue) write_rule_json(out, entry);
         out.end_array();
         out.end_object();
         out.finish();
@@ -83,13 +82,8 @@ int run_list_codes(options const& opts, streams sink)
     for (auto const& entry : catalogue)
     {
         sink.out << std::format(
-            "{}\t{}\t{}\t{}\t{}{}\n",
-            entry.code,
-            severity_name(entry.default_level),
-            entry.area,
-            phase_name(entry.needs),
-            applies_to(entry),
-            entry.experimental ? "\texperimental" : ""
+            "{}\t{}\t{}\t{}\t{}{}\n", entry.code, severity_name(entry.default_level), entry.area,
+            phase_name(entry.needs), applies_to(entry), entry.experimental ? "\texperimental" : ""
         );
     }
 
