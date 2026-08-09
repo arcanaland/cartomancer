@@ -1,0 +1,8 @@
+# `deck-identifier-path-shape` is a warning: the identifier's path is not
+# `deck/<name>`. Nothing here is an error, which is what makes this the
+# fixture for `--level error` exiting 0.
+[deck]
+schema_version = "2.0"
+name = "Warning Deck"
+version = "1.0"
+identifier = "org.example/spread/warning-deck"

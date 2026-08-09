@@ -1,5 +1,12 @@
 build/
-dist/
+CMakeUserPresets.json
+
+.env
 mise.toml
 .mise.toml
-.env
+
+# llm stuff
+CLAUDE.md
+*.local.md
+agents/
+

@@ -1,0 +1,19 @@
+version = 1
+SPDX-PackageName = "cartomancer"
+SPDX-PackageSupplier = "Adam Fidel <adam@fidel.cloud>"
+SPDX-PackageDownloadLocation = "https://github.com/arcanaland/cartomancer"
+
+[[annotations]]
+path = [
+  ".clang-format",
+  ".clang-tidy",
+  ".gitignore",
+  "conan.lock",
+  "lefthook.yaml",
+  "LICENSE",
+  "README.md",
+  "tests/fixtures/**",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = "2026 Adam Fidel"
+SPDX-License-Identifier = "MIT"

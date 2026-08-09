@@ -1,0 +1,91 @@
+# SPDX-FileCopyrightText: 2026 Adam Fidel
+# SPDX-License-Identifier: MIT
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CONAN_VOLUME_PATH: /home/runner/.local/share/containers/storage/volumes/cartomancer-conan/_data
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      # Both repos are checked out as siblings inside the workspace, because
+      # actions/checkout cannot write above it and scripts/podman-shim.sh looks
+      # for the arcana prefix at ../libarcana by default.
+      - uses: actions/checkout@v4
+        with:
+          path: cartomancer
+
+      - uses: actions/checkout@v4
+        with:
+          repository: arcanaland/libarcana
+          path: libarcana
+
+      - uses: extractions/setup-just@v2
+
+      - name: Create conan volumes
+        run: |
+          podman volume create libarcana-conan
+          podman volume create cartomancer-conan
+
+      - name: Cache conan store
+        uses: actions/cache@v4
+        with:
+          path: ${{ env.CONAN_VOLUME_PATH }}
+          key: conan-${{ hashFiles('cartomancer/conanfile.py') }}
+          restore-keys: |
+            conan-
+
+      # libarcana ships no consumable Conan package, so we consume a staged
+      # install prefix instead. Replace this with a `requires` the day a real
+      # `arcana` recipe exists -- libarcana's RFC-019.
+      - name: Stage the arcana install prefix
+        working-directory: libarcana
+        run: |
+          just build-image
+          just install
+
+      - name: Build image
+        working-directory: cartomancer
+        run: just build-image
+
+      - name: Build
+        working-directory: cartomancer
+        run: just build
+
+      - name: Test
+        working-directory: cartomancer
+        run: just test
+
+      - name: Check formatting
+        if: always()
+        working-directory: cartomancer
+        run: just check-format
+
+      - name: clang-tidy
+        if: always()
+        working-directory: cartomancer
+        run: just tidy
+
+      - name: REUSE
+        if: always()
+        working-directory: cartomancer
+        run: just lint-reuse
+
+      - name: Upload ctest output on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ctest-output
+          path: cartomancer/build/RelWithDebInfo/Testing/

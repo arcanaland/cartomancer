@@ -1,0 +1,6 @@
+# `bad-deck-identifier` is an error: no realm, no slash, no path.
+[deck]
+schema_version = "2.0"
+name = "Error Deck"
+version = "1.0"
+identifier = "not a qualified identifier"
