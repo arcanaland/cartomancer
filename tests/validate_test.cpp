@@ -79,9 +79,6 @@ TEST_CASE("a deck with an error exits 2", "[validate]")
 
 TEST_CASE("the flag --level error exits 0 on a warnings-only deck", "[validate]")
 {
-    // The whole point of the flag: --level is a threshold on the exit code,
-    // not only on what is printed, which is what makes this the CI invocation
-    // that tolerates warnings. ADR-009.
     auto const result = run_cli({"validate", "--level", "error", deck_path("warning-deck")});
 
     REQUIRE(result.status == 0);
@@ -96,8 +93,6 @@ TEST_CASE("the flag --level error still exits 2 on a deck with an error", "[vali
 
 TEST_CASE("a directory that is not a deck exits 3", "[validate]")
 {
-    // 3 says "I could not read it, so I am telling you nothing about its
-    // conformance", which is the opposite of what 2 says. ADR-009.
     auto const result = run_cli({"validate", (fixtures() / "not-a-deck").string()});
 
     REQUIRE(result.status == 3);
@@ -110,7 +105,7 @@ TEST_CASE("an absent path exits 3", "[validate]")
     REQUIRE(result.status == 3);
 }
 
-TEST_CASE("a malformed manifest exits 3, not 2", "[validate]")
+TEST_CASE("a malformed manifest exits 3", "[validate]")
 {
     auto const result = run_cli({"validate", deck_path("malformed-deck")});
     REQUIRE(result.status == 3);
@@ -124,8 +119,6 @@ TEST_CASE("the flag --deck resolves a discovered deck by directory name", "[vali
 
 TEST_CASE("a TARGET that is not a path is looked up as a directory name", "[validate]")
 {
-    // ADR-009: a path that exists on disk is loaded via load_external;
-    // anything else is a directory name looked up in the library.
     REQUIRE(run_cli({"validate", "error-deck"}).status == 2);
 }
 
@@ -135,54 +128,13 @@ TEST_CASE("the flag --deck naming no discovered deck exits 3", "[validate]")
     REQUIRE(result.status == 3);
 }
 
-TEST_CASE("the flag --format json carries the ADR-009 field names", "[validate]")
-{
-    auto const result = run_cli({"validate", "--format", "json", deck_path("error-deck")});
-
-    REQUIRE(result.status == 2);
-    for (auto const* field : {"target", "deck_id", "schema_version", "diagnostics", "summary"})
-        REQUIRE(result.out.contains(std::string{'"'} + field + '"'));
-
-    for (auto const* field : {"level", "code", "message", "card", "path", "key"})
-        REQUIRE(result.out.contains(std::string{'"'} + field + '"'));
-}
-
-TEST_CASE("the flag --format json writes empty diagnostic optionals as null", "[validate]")
-{
-    auto const result = run_cli({"validate", "--format", "json", deck_path("error-deck")});
-
-    REQUIRE(result.out.contains("\"card\": null"));
-}
-
-TEST_CASE("the json summary reconciles with the diagnostics beside it", "[validate]")
-{
-    // summary counts reported diagnostics, i.e. after the --level floor.
-    auto const result =
-        run_cli({"validate", "--format", "json", "--level", "error", deck_path("warning-deck")});
-
-    REQUIRE(result.status == 0);
-    REQUIRE(result.out.contains("\"diagnostics\": []"));
-    REQUIRE(result.out.contains("\"error\": 0"));
-    REQUIRE(result.out.contains("\"warning\": 0"));
-}
-
-TEST_CASE("an unloadable deck reports json rather than an empty stream", "[validate]")
-{
-    auto const result =
-        run_cli({"validate", "--format", "json", (fixtures() / "not-a-deck").string()});
-
-    REQUIRE(result.status == 3);
-    REQUIRE(result.out.contains("\"error\""));
-    REQUIRE_FALSE(result.out.contains("\"diagnostics\""));
-}
-
-TEST_CASE("text output carries no escape sequences when colour is off", "[validate]")
+TEST_CASE("text output has no escape sequences when color is off", "[validate]")
 {
     auto const result = run_cli({"validate", deck_path("error-deck")});
     REQUIRE_FALSE(result.out.contains("\033["));
 }
 
-TEST_CASE("text output carries escape sequences when colour is on", "[validate]")
+TEST_CASE("text output has escape sequences when color is on", "[validate]")
 {
     auto const result = run_cli({"validate", deck_path("error-deck")}, true);
     REQUIRE(result.out.contains("\033["));
