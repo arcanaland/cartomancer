@@ -9,4 +9,5 @@ mise.toml
 CLAUDE.md
 *.local.md
 agents/
+.claude/
 

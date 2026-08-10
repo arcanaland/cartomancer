@@ -38,7 +38,9 @@ struct invocation
 };
 
 // Run the CLI in-process against the fixture library.
-[[nodiscard]] inline invocation run_cli(std::initializer_list<std::string_view> args, bool use_color = false)
+[[nodiscard]] inline invocation run_cli(
+    std::initializer_list<std::string_view> args, bool use_color = false
+)
 {
     std::vector<std::string_view> const argv(args);
 
