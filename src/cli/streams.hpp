@@ -15,9 +15,6 @@ struct streams
 {
     std::ostream& out;
     std::ostream& err;
-
-    // How to dress what goes on them. `style.style` is the palette; the default
-    // is no colour, ASCII marks and unbounded width.
     theme style;
 };
 

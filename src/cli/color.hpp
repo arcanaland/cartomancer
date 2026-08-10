@@ -2,10 +2,6 @@
 // SPDX-License-Identifier: MIT
 
 // The terminal presentation layer.
-//
-// Every SGR sequence in the program is spelled in this header and nowhere else;
-// `just lint-escapes` enforces that. Call sites name a role — `t.style.accent` —
-// never a code.
 
 #pragma once
 
@@ -30,9 +26,7 @@ enum class color_mode : std::uint8_t
     truecolor,
 };
 
-// How much colour the terminal turned out to accept. `ansi16` is the floor and
-// the default: it maps roles onto the terminal's own sixteen colours, so light
-// and dark themes both work unconfigured.
+// How much color the terminal turned out to accept.
 enum class color_depth : std::uint8_t
 {
     none,
@@ -41,21 +35,16 @@ enum class color_depth : std::uint8_t
     truecolor,
 };
 
-// The byte every SGR sequence opens with, exported so that code which has to
-// *recognise* an escape does not have to spell one.
 inline constexpr char sgr_escape = '\033';
 
-// The semantic roles. Every member is empty at depth `none`, so no call site
-// ever branches on whether colour is on.
 struct palette
 {
-    // Bold: headings, deck names, the one thing on a line that matters.
+    // Bold (headings, deck names, etc)
     std::string_view strong;
 
-    // Dim: paths, counts, units, column headers.
+    // Dim (paths, counts, units, column headers)
     std::string_view muted;
 
-    // An identifier the user can type back: a deck directory name, a rule code.
     std::string_view accent;
 
     std::string_view success;
@@ -67,14 +56,6 @@ struct palette
     std::string_view reset;
 };
 
-// The palette for a depth.
-//
-// constexpr and header-visible because cli/text.cpp constant-evaluates it to
-// build the four --help variants.
-//
-// A deeper palette only refines the roles `ansi16` already expresses; it never
-// introduces one that `ansi16` cannot, so no output differs in structure by
-// depth, only in shade.
 [[nodiscard]] constexpr palette for_depth(color_depth depth) noexcept
 {
     switch (depth)
@@ -125,8 +106,7 @@ struct palette
     return {};
 }
 
-// The marks the text surfaces print. Independent of colour: a NO_COLOR terminal
-// in a UTF-8 locale still gets the Unicode set.
+// The marks the text surfaces print.
 struct glyphs
 {
     std::string_view ok;
@@ -135,8 +115,7 @@ struct glyphs
     std::string_view arrow;
     std::string_view ellipsis;
 
-    // The em dash in `ok nano-tarot - no problems found`. In the set rather than
-    // written into the line because the ASCII fallback needs a hyphen.
+    // The em dash in `ok nano-tarot - no problems found`.
     std::string_view dash;
 };
 
@@ -158,20 +137,14 @@ inline constexpr glyphs ascii_marks{
     .dash = "-",
 };
 
-// Everything a text surface needs to know about the terminal, resolved once in
-// app.cpp and carried by `cli::streams`.
 struct theme
 {
-    // Not redundant with `style`: usage_text dispatches on it, and a future
-    // image renderer picks a quantizer by it, which the palette cannot tell it.
     color_depth depth = color_depth::none;
 
     palette style = for_depth(color_depth::none);
 
     glyphs mark = ascii_marks;
 
-    // Columns available for output. **0 means unbounded**, and is what a non-tty
-    // gets: piped output must not depend on the pipe reader's window.
     std::size_t width = 0;
 };
 
@@ -180,8 +153,7 @@ struct theme
 // Resolve --color against NO_COLOR, whether stdout is a terminal, and what the
 // terminal advertises.
 //
-// An explicit --color beats the ambient NO_COLOR, which beats tty-ness. A pure
-// function: the environment and isatty are read in app.cpp.
+// An explicit --color beats the ambient NO_COLOR, which beats tty-ness.
 //
 // @param mode           what --color / --no-color asked for
 // @param explicitly_set whether either flag was actually given
@@ -194,35 +166,26 @@ struct theme
     std::optional<std::string_view> colorterm, std::optional<std::string_view> term
 ) noexcept;
 
-// The glyph set for a locale: the Unicode marks when the first of LC_ALL,
-// LC_CTYPE and LANG that is set names a UTF-8 codeset, the ASCII ones otherwise.
+// The glyph set for a locale
 [[nodiscard]] glyphs glyphs_for_locale(
     std::optional<std::string_view> lc_all, std::optional<std::string_view> lc_ctype,
     std::optional<std::string_view> lang
 ) noexcept;
 
-// The terminal's own idea of its width, from TIOCGWINSZ on stdout.
-//
-// The impure half of width detection; app.cpp feeds its answer to resolve_width.
+// The terminal's own idea of its width
 [[nodiscard]] std::optional<std::size_t> window_columns() noexcept;
 
-// COLUMNS when it parses as a positive integer, else the window's own answer,
-// else 80 for a terminal and 0 — unbounded — for anything else.
 [[nodiscard]] std::size_t resolve_width(
     bool tty, std::optional<std::string_view> columns, std::optional<std::size_t> window
 ) noexcept;
 
-// The style a severity is printed in, or "" when colour is off.
+// The style a severity is printed in
 [[nodiscard]] std::string_view severity_style(theme const& t, arcana::severity level) noexcept;
 
-// The columns text occupies, counting each UTF-8 sequence as one.
-//
-// Wide characters are counted as one column too; correcting that is the image
-// renderer's problem, and deck names are ASCII-ish in practice.
 [[nodiscard]] std::size_t display_width(std::string_view text) noexcept;
 
-// text, shortened to at most `limit` columns and ending in `ellipsis` when it
-// had to be. An empty string when limit is 0.
+// text, shortened to at most limit columns and ending in ellipsis when it
+// can't fit
 [[nodiscard]] std::string fit(std::string_view text, std::size_t limit, std::string_view ellipsis);
 
 }  // namespace cartomancer::cli

@@ -42,8 +42,7 @@ void write_version(cli::streams sink)
     return std::string_view(value);
 }
 
-// Everything impure about presentation happens here, once: the environment,
-// isatty and the window size are read and handed to the pure resolvers.
+// Everything impure about presentation should happen here
 [[nodiscard]] cli::theme resolve_theme(cli::options const& requested)
 {
     bool const tty = isatty(STDOUT_FILENO) == 1;

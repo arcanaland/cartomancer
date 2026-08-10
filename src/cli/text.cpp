@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <ranges>
 #include <string>
 
 namespace cartomancer::cli
@@ -24,24 +25,16 @@ namespace
     return name.size() + (metavar.empty() ? 0 : 1 + metavar.size());
 }
 
-// Every description starts in the same column, in every block, computed from
-// the widest entry rather than counted out by hand.
-[[nodiscard]] constexpr std::size_t flag_column()
+// The widest left column in `table`, which must not be empty.
+[[nodiscard]] constexpr std::size_t widest_spelling(auto const& table)
 {
-    std::size_t widest = 0;
-    for (auto const& one : flags) widest = std::max(widest, spelling_width(one.name, one.metavar));
-
-    return widest + 2;
+    return std::ranges::max(table | std::views::transform([](auto const& one) {
+                                return spelling_width(one.name, one.metavar);
+                            }));
 }
 
-[[nodiscard]] constexpr std::size_t command_column()
-{
-    std::size_t widest = 0;
-    for (auto const& one : subcommands)
-        widest = std::max(widest, spelling_width(one.name, one.metavar));
-
-    return widest + 3;
-}
+inline constexpr std::size_t flag_column = widest_spelling(flags) + 2;
+inline constexpr std::size_t command_column = widest_spelling(subcommands) + 3;
 
 constexpr void append_heading(std::string& out, std::string_view heading, palette const& style)
 {
@@ -70,10 +63,6 @@ constexpr void append_entry(
         out += style.reset;
     }
 
-    // The padding comes from the *raw* spelling, never from the styled bytes.
-    // Fold the escapes into it and --help misaligns on a real terminal while
-    // every --color=never test in the suite still passes; the static_asserts
-    // below exist to catch exactly that.
     auto const used = spelling_width(name, metavar);
     out.append(column > used ? column - used : 1, ' ');
 
@@ -86,7 +75,7 @@ constexpr void append_flags(std::string& out, help_section which, palette const&
 {
     for (auto const& one : flags)
         if (has_section(one.sections, which))
-            append_entry(out, one.name, one.metavar, flag_column(), one.help, style);
+            append_entry(out, one.name, one.metavar, flag_column, one.help, style);
 }
 
 [[nodiscard]] constexpr std::string build_usage(palette const& style)
@@ -98,7 +87,7 @@ constexpr void append_flags(std::string& out, help_section which, palette const&
 
     append_heading(out, "Commands:", style);
     for (auto const& one : subcommands)
-        append_entry(out, one.name, one.metavar, command_column(), one.help, style);
+        append_entry(out, one.name, one.metavar, command_column, one.help, style);
 
     out += '\n';
     append_heading(out, "Validate flags:", style);
@@ -129,19 +118,8 @@ both --deck and TARGET is a usage error.
     return out;
 }
 
-// --help varies with depth alone: it uses no glyphs and does not wrap to width.
-// Depth is a closed set of four, so all four variants are built at compile time
-// and live in .rodata, which is what lets usage_text hand back a string_view
-// with no allocation and no static-init order to reason about.
-//
-// build_usage is called twice on purpose: a constexpr std::string's allocation
-// cannot escape constant evaluation, so its size has to be measured before the
-// array that will hold it can be declared.
-//
-// NOLINTBEGIN(modernize-avoid-c-style-cast): inside this dependent context
-// clang-tidy 21 reads any call taking `Depth` — a non-type template parameter —
-// as a functional cast. There is no cast here; both calls are to constexpr
-// functions declared above.
+// NOLINTBEGIN(modernize-avoid-c-style-cast):
+// clang-tidy gets confused here
 template <color_depth Depth>
 constexpr auto usage_storage = []
 {
@@ -162,9 +140,6 @@ template <color_depth Depth>
     return {usage_storage<Depth>.data(), usage_storage<Depth>.size()};
 }
 
-// A styled variant with its SGR sequences removed must be the unstyled one,
-// byte for byte. Anything that widens a padded column by the length of an
-// escape sequence trips this.
 template <color_depth Depth>
 [[nodiscard]] constexpr bool aligns_like_plain()
 {
@@ -185,7 +160,6 @@ template <color_depth Depth>
     return std::ranges::equal(stripped, usage_of<color_depth::none>());
 }
 
-// The text is still a constant, not silently rebuilt at runtime.
 static_assert(!usage_of<color_depth::none>().empty());
 static_assert(!usage_of<color_depth::ansi16>().empty());
 static_assert(!usage_of<color_depth::indexed_256>().empty());

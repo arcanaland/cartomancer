@@ -17,7 +17,6 @@ namespace
 // What a terminal is assumed to be when it has a window but will not say how wide.
 constexpr std::size_t fallback_width = 80;
 
-// A UTF-8 continuation byte is 10xxxxxx; every other byte starts a codepoint.
 constexpr unsigned char continuation_mask = 0xC0U;
 constexpr unsigned char continuation_bits = 0x80U;
 
@@ -46,7 +45,7 @@ constexpr std::size_t decimal_base = 10;
     return value;
 }
 
-// What the terminal advertises, for the depths that ask rather than assert.
+// What the terminal advertises
 [[nodiscard]] color_depth advertised_depth(
     std::optional<std::string_view> colorterm, std::optional<std::string_view> term
 ) noexcept
@@ -60,8 +59,7 @@ constexpr std::size_t decimal_base = 10;
     return color_depth::ansi16;
 }
 
-// The first of the locale variables that is set to something non-empty. An
-// empty value means unset, as POSIX has it.
+// The first of the locale variables that is set to something non-empty.
 [[nodiscard]] std::string_view effective_locale(
     std::optional<std::string_view> lc_all, std::optional<std::string_view> lc_ctype,
     std::optional<std::string_view> lang
@@ -74,7 +72,6 @@ constexpr std::size_t decimal_base = 10;
     return {};
 }
 
-// `en_US.UTF-8` and `C.utf8` name UTF-8; `C` and `POSIX` do not.
 [[nodiscard]] bool names_utf8(std::string_view locale) noexcept
 {
     auto const dot = locale.rfind('.');
@@ -164,7 +161,6 @@ std::size_t resolve_width(
     bool tty, std::optional<std::string_view> columns, std::optional<std::size_t> window
 ) noexcept
 {
-    // COLUMNS is the user saying so, which outranks both the window and the pipe.
     if (auto const asked = whole_number(columns.value_or(std::string_view{})); asked > 0)
         return asked;
 
@@ -199,7 +195,7 @@ std::size_t display_width(std::string_view text) noexcept
 namespace
 {
 
-// The longest prefix of text that occupies at most `columns`, cut only on a
+// The longest prefix of text that occupies at most columns cut on a
 // codepoint boundary.
 [[nodiscard]] std::string_view cut_to(std::string_view text, std::size_t columns) noexcept
 {
