@@ -39,6 +39,22 @@ namespace
     return std::format("{}-{}", entry.applies_to.min, entry.applies_to.max);
 }
 
+// The --list-codes column widths, header rows included.
+struct columns
+{
+    std::size_t code = 0;
+    std::size_t level = 0;
+    std::size_t area = 0;
+    std::size_t needs = 0;
+};
+
+[[nodiscard]] std::string pad(std::string_view text, std::size_t width)
+{
+    std::string padded{text};
+    padded.append(width - std::min(width, cli::display_width(text)), ' ');
+    return padded;
+}
+
 [[nodiscard]] json::document rule_json(arcana::rule const& entry)
 {
     return json::document{
@@ -67,12 +83,43 @@ cli::exit_code run_list_codes(cli::options const& opts, cli::streams sink)
         return cli::exit_code::ok;
     }
 
+    auto const& look = sink.style;
+    auto const& style = look.style;
+
+    // Aligned columns rather than tabs. This is what breaks `cut -f`; the
+    // machine-readable answer is --format json, and README.md says so.
+    columns widest{
+        .code = cli::display_width("CODE"),
+        .level = cli::display_width("LEVEL"),
+        .area = cli::display_width("AREA"),
+        .needs = cli::display_width("NEEDS"),
+    };
+
+    for (auto const& entry : catalogue)
+    {
+        widest.code = std::max(widest.code, cli::display_width(entry.code));
+        widest.level =
+            std::max(widest.level, cli::display_width(cli::severity_name(entry.default_level)));
+        widest.area = std::max(widest.area, cli::display_width(entry.area));
+        widest.needs = std::max(widest.needs, cli::display_width(phase_name(entry.needs)));
+    }
+
+    sink.out << std::format(
+        "{}{}  {}  {}  {}  SCHEMA{}\n", style.muted, pad("CODE", widest.code),
+        pad("LEVEL", widest.level), pad("AREA", widest.area), pad("NEEDS", widest.needs),
+        style.reset
+    );
+
     for (auto const& entry : catalogue)
     {
         sink.out << std::format(
-            "{}\t{}\t{}\t{}\t{}{}\n", entry.code, cli::severity_name(entry.default_level),
-            entry.area, phase_name(entry.needs), applies_to(entry),
-            entry.experimental ? "\texperimental" : ""
+            "{}{}{}  {}{}{}  {}  {}  {}{}\n", style.accent, pad(entry.code, widest.code),
+            style.reset, cli::severity_style(look, entry.default_level),
+            pad(cli::severity_name(entry.default_level), widest.level), style.reset,
+            pad(entry.area, widest.area), pad(phase_name(entry.needs), widest.needs),
+            applies_to(entry),
+            entry.experimental ? std::format("  {}experimental{}", style.muted, style.reset)
+                               : std::string{}
         );
     }
 
@@ -85,7 +132,10 @@ cli::exit_code run_explain(cli::options const& opts, std::string_view code, cli:
 
     if (entry == nullptr)
     {
-        sink.err << std::format("no such diagnostic code: {}\n", code);
+        sink.err << std::format(
+            "{}{}{} no such diagnostic code: {}\n", sink.style.style.error, sink.style.mark.bad,
+            sink.style.style.reset, code
+        );
         return cli::exit_code::usage;
     }
 
@@ -98,14 +148,26 @@ cli::exit_code run_explain(cli::options const& opts, std::string_view code, cli:
         return cli::exit_code::ok;
     }
 
-    sink.out << std::format("{} ({})\n\n", entry->code, cli::severity_name(entry->default_level));
+    auto const& look = sink.style;
+    auto const& style = look.style;
+
+    // Same field layout as before; the code takes its severity's style and the
+    // labels step back into muted.
+    auto const field = [&sink, &style](std::string_view label, std::string_view value)
+    { sink.out << std::format("{}{}{}{}\n", style.muted, label, style.reset, value); };
+
+    sink.out << std::format(
+        "{}{}{} ({})\n\n", cli::severity_style(look, entry->default_level), entry->code,
+        style.reset, cli::severity_name(entry->default_level)
+    );
     sink.out << std::format("{}\n\n", entry->explanation);
-    sink.out << std::format("area:         {}\n", entry->area);
-    sink.out << std::format("needs:        {}\n", phase_name(entry->needs));
-    sink.out << std::format("spec:         {}\n", entry->spec_ref);
-    sink.out << std::format("schema:       {}\n", applies_to(*entry));
+
+    field("area:         ", entry->area);
+    field("needs:        ", phase_name(entry->needs));
+    field("spec:         ", entry->spec_ref);
+    field("schema:       ", applies_to(*entry));
     if (entry->experimental)
-        sink.out << "experimental: yes\n";
+        field("experimental: ", "yes");
 
     return cli::exit_code::ok;
 }

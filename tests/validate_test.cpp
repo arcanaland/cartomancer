@@ -7,6 +7,7 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+#include <algorithm>
 #include <string>
 #include <vector>
 
@@ -82,7 +83,10 @@ TEST_CASE("the flag --level error exits 0 on a warnings-only deck", "[validate]"
     auto const result = run_cli({"validate", "--level", "error", deck_path("warning-deck")});
 
     REQUIRE(result.status == 0);
-    REQUIRE(result.out.contains("0 error(s), 0 warning(s)"));
+
+    // Nothing survived the floor, so this is the clean line, not a tally of zeroes.
+    REQUIRE(result.out.contains("no problems found"));
+    REQUIRE_FALSE(result.out.contains("warning"));
 }
 
 TEST_CASE("the flag --level error still exits 2 on a deck with an error", "[validate]")
@@ -136,6 +140,56 @@ TEST_CASE("text output has no escape sequences when color is off", "[validate]")
 
 TEST_CASE("text output has escape sequences when color is on", "[validate]")
 {
-    auto const result = run_cli({"validate", deck_path("error-deck")}, true);
+    auto const result = run_cli({"validate", deck_path("error-deck")}, styled(color_depth::ansi16));
     REQUIRE(result.out.contains("\033["));
+}
+
+TEST_CASE("a clean deck prints one line naming the deck", "[validate]")
+{
+    auto const result = run_cli({"validate", deck_path("clean-deck")});
+
+    REQUIRE(result.status == 0);
+    REQUIRE(std::ranges::count(result.out, '\n') == 1);
+    REQUIRE(result.out.contains("no problems found"));
+}
+
+TEST_CASE("a finding carries its code, its message and its location", "[validate]")
+{
+    auto const result = run_cli({"validate", deck_path("warning-deck")});
+
+    REQUIRE(result.status == 1);
+    REQUIRE(result.out.contains("warning[deck-identifier-path-shape]:"));
+    REQUIRE(result.out.contains("-> deck.identifier"));
+}
+
+TEST_CASE("the footer omits the severities that did not occur", "[validate]")
+{
+    auto const result = run_cli({"validate", deck_path("warning-deck")});
+
+    REQUIRE(result.out.contains("1 warning in Warning Deck"));
+    REQUIRE_FALSE(result.out.contains("0 error"));
+    REQUIRE_FALSE(result.out.contains("pedantic"));
+    REQUIRE_FALSE(result.out.contains("warnings"));
+}
+
+TEST_CASE("the footer's mark agrees with the exit code", "[validate]")
+{
+    auto const warned = run_cli({"validate", deck_path("warning-deck")});
+    REQUIRE(warned.status == 1);
+    REQUIRE(warned.out.contains("[!]"));
+
+    auto const failed = run_cli({"validate", deck_path("error-deck")});
+    REQUIRE(failed.status == 2);
+    REQUIRE(failed.out.contains("[x]"));
+}
+
+TEST_CASE("a glyph set reaches the output", "[validate]")
+{
+    cli::theme unicode;
+    unicode.mark = cli::unicode_marks;
+
+    auto const result = run_cli({"validate", deck_path("clean-deck")}, unicode);
+
+    REQUIRE(result.out.contains("✓"));
+    REQUIRE(result.out.contains("—"));
 }

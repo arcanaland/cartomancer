@@ -78,6 +78,11 @@ jobs:
         working-directory: cartomancer
         run: just lint-reuse
 
+      - name: Escapes
+        if: always()
+        working-directory: cartomancer
+        run: just lint-escapes
+
       - name: Upload ctest output on failure
         if: failure()
         uses: actions/upload-artifact@v4

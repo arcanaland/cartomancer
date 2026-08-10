@@ -37,9 +37,18 @@ struct invocation
     std::string err;
 };
 
+// A theme at a depth, otherwise the default: ASCII marks, unbounded width.
+[[nodiscard]] inline cli::theme styled(cli::color_depth depth)
+{
+    return {.depth = depth, .style = cli::for_depth(depth)};
+}
+
 // Run the CLI in-process against the fixture library.
+//
+// The default theme is deterministic by construction — no colour, ASCII marks,
+// unbounded width — and no test may read TERM, COLUMNS or LANG, or call isatty.
 [[nodiscard]] inline invocation run_cli(
-    std::initializer_list<std::string_view> args, bool use_color = false
+    std::initializer_list<std::string_view> args, cli::theme look = {}
 )
 {
     std::vector<std::string_view> const argv(args);
@@ -50,7 +59,7 @@ struct invocation
     arcana::library_options options;
     options.roots = {library_root()};
 
-    cli::streams sink{.out = out, .err = err, .use_color = use_color};
+    cli::streams sink{.out = out, .err = err, .style = look};
     int const status = run_with_library(argv, std::move(options), sink);
 
     return {.status = status, .out = out.str(), .err = err.str()};

@@ -123,6 +123,25 @@ TEST_CASE("the flag --help exits 0 and prints the surface", "[cli]")
     REQUIRE(result.out.contains("list"));
 }
 
+TEST_CASE("the flag --help is styled by depth and by depth alone", "[cli]")
+{
+    auto const plain = run_cli({"--help"});
+    auto const lit = run_cli({"--help"}, styled(color_depth::truecolor));
+
+    REQUIRE_FALSE(plain.out.contains("\033["));
+    REQUIRE(lit.out.contains("\033["));
+    REQUIRE(lit.out != plain.out);
+
+    // Glyphs and width do not reach --help, so neither changes a byte of it.
+    cli::theme const dressed{
+        .depth = color_depth::none,
+        .style = for_depth(color_depth::none),
+        .mark = unicode_marks,
+        .width = 20,
+    };
+    REQUIRE(run_cli({"--help"}, dressed).out == plain.out);
+}
+
 TEST_CASE("a bare invocation prints help and exits 0", "[cli]")
 {
     auto const result = run_cli({});
