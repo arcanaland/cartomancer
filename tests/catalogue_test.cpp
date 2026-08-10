@@ -35,7 +35,6 @@ TEST_CASE("the flag --list-codes prints one line per catalogued rule", "[catalog
     REQUIRE(header.ends_with("SCHEMA"));
     for (auto const* column : {"LEVEL", "AREA", "NEEDS"}) REQUIRE(header.contains(column));
 
-    // Aligned columns, not tabs: `cut -f` is what --format json is for now.
     REQUIRE_FALSE(result.out.contains('\t'));
 }
 

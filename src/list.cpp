@@ -36,11 +36,6 @@ struct piece
 };
 
 // The cells of a row, padded and styled into one line.
-//
-// The last cell is never padded, so no line carries trailing whitespace, and
-// every cell's padding is computed from its *plain* width — folding the escape
-// bytes into it misaligns the output on a real terminal while every
-// --color=never test still passes.
 [[nodiscard]] std::string compose(std::span<piece const> cells, cli::theme const& look)
 {
     std::string row;
@@ -71,8 +66,7 @@ struct piece
     return row;
 }
 
-// The four text columns. `id` is not among them: it is byte-identical to
-// `directory_name` for every deck seen in practice, and --format json keeps it.
+// The four text columns.
 struct layout
 {
     std::size_t deck = 0;
@@ -118,10 +112,7 @@ struct layout
     return widest;
 }
 
-// Make the table fit `width`. A width of 0 is unbounded and fits always.
-//
-// Columns are dropped from the right only when even the floor widths overflow,
-// so a narrow terminal loses VERSION before it loses half of every deck name.
+// Make the table fit `width`.
 [[nodiscard]] layout fit_to(layout widest, std::size_t width)
 {
     if (width == 0 || widest.total() <= width)
@@ -141,7 +132,7 @@ struct layout
         *shown = false;
     }
 
-    // Then take from whichever free-text column is currently the wider.
+    // Then take from whichever free-text column is currently the widest.
     while (widest.total() > width &&
            ((widest.show_name && widest.name > floor_width) || widest.deck > floor_width))
     {
@@ -151,7 +142,7 @@ struct layout
             --widest.deck;
     }
 
-    // A terminal too narrow even for that cuts into DECK itself.
+    // A terminal too narrow even for that
     if (widest.total() > width)
         widest.deck -= std::min(widest.deck, widest.total() - width);
 
@@ -199,7 +190,7 @@ void write_line(cli::streams sink, std::string_view text, std::string_view style
     sink.out << compose({&only, 1}, look) << '\n';
 }
 
-// The header row and one row per deck, in the columns that survived `width`.
+// The header row and one row per deck
 void write_table(std::span<arcana::deck_summary const> decks, cli::streams sink)
 {
     auto const& look = sink.style;

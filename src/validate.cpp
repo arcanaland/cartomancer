@@ -138,8 +138,6 @@ struct tally
     return counts;
 }
 
-// `2 errors, 1 warning`: zero counts are omitted rather than printed as zeroes,
-// and `info` and `pedantic` are read as uncountable.
 [[nodiscard]] std::string describe(tally const& counts)
 {
     std::string out;
@@ -198,8 +196,6 @@ void write_text(
             );
     }
 
-    // Derived from the same tally code_for reads, so the mark cannot disagree
-    // with the exit code.
     auto const counts = count(reported);
 
     auto mark = look.mark.ok;

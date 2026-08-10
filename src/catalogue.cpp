@@ -86,8 +86,6 @@ cli::exit_code run_list_codes(cli::options const& opts, cli::streams sink)
     auto const& look = sink.style;
     auto const& style = look.style;
 
-    // Aligned columns rather than tabs. This is what breaks `cut -f`; the
-    // machine-readable answer is --format json, and README.md says so.
     columns widest{
         .code = cli::display_width("CODE"),
         .level = cli::display_width("LEVEL"),
@@ -151,8 +149,6 @@ cli::exit_code run_explain(cli::options const& opts, std::string_view code, cli:
     auto const& look = sink.style;
     auto const& style = look.style;
 
-    // Same field layout as before; the code takes its severity's style and the
-    // labels step back into muted.
     auto const field = [&sink, &style](std::string_view label, std::string_view value)
     { sink.out << std::format("{}{}{}{}\n", style.muted, label, style.reset, value); };
 

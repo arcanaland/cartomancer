@@ -37,16 +37,13 @@ struct invocation
     std::string err;
 };
 
-// A theme at a depth, otherwise the default: ASCII marks, unbounded width.
+// A theme at a depth
 [[nodiscard]] inline cli::theme styled(cli::color_depth depth)
 {
     return {.depth = depth, .style = cli::for_depth(depth)};
 }
 
 // Run the CLI in-process against the fixture library.
-//
-// The default theme is deterministic by construction — no colour, ASCII marks,
-// unbounded width — and no test may read TERM, COLUMNS or LANG, or call isatty.
 [[nodiscard]] inline invocation run_cli(
     std::initializer_list<std::string_view> args, cli::theme look = {}
 )

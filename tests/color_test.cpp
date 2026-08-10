@@ -103,7 +103,6 @@ TEST_CASE("an explicit --color=auto asks for the terminal check", "[color]")
 
 TEST_CASE("the values 256 and truecolor select a depth of their own", "[color]")
 {
-    // The gap ADR-009 closed on 2026-08-09: these are not aliases for `always`.
     REQUIRE(depth_of(color_mode::indexed_256, true, unset, tty) == color_depth::indexed_256);
     REQUIRE(depth_of(color_mode::truecolor, true, unset, tty) == color_depth::truecolor);
     REQUIRE(depth_of(color_mode::always, true, unset, tty) == color_depth::ansi16);
@@ -216,7 +215,7 @@ TEST_CASE("a UTF-8 codeset selects the unicode glyphs", "[color]")
 
 TEST_CASE("glyphs and colour are independent", "[color]")
 {
-    // NO_COLOR still gets the check mark; LC_CTYPE=C still gets colour.
+    // NO_COLOR still gets the check mark and LC_CTYPE=C still gets colour.
     REQUIRE(glyphs_for_locale("en_US.UTF-8", unset, unset).ok == unicode_marks.ok);
     REQUIRE(depth_of(color_mode::automatic, false, "1", tty) == color_depth::none);
     REQUIRE(glyphs_for_locale("C", unset, unset).ok == ascii_marks.ok);
@@ -255,6 +254,7 @@ TEST_CASE("fit shortens to a column budget and marks that it did", "[color]")
     REQUIRE(fit("ααααα", 3, "…") == "αα…");
 
     // When even the marker will not fit, a bare cut is all that is left.
+    // Not sure why I'm testing this, but meh
     REQUIRE(fit("truncate-me", 2, "...") == "tr");
 }
 

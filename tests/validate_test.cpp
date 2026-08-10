@@ -84,7 +84,7 @@ TEST_CASE("the flag --level error exits 0 on a warnings-only deck", "[validate]"
 
     REQUIRE(result.status == 0);
 
-    // Nothing survived the floor, so this is the clean line, not a tally of zeroes.
+    // Nothing survived the floor, so this is the clean line
     REQUIRE(result.out.contains("no problems found"));
     REQUIRE_FALSE(result.out.contains("warning"));
 }
@@ -153,7 +153,7 @@ TEST_CASE("a clean deck prints one line naming the deck", "[validate]")
     REQUIRE(result.out.contains("no problems found"));
 }
 
-TEST_CASE("a finding carries its code, its message and its location", "[validate]")
+TEST_CASE("a finding has its code, its message and its location", "[validate]")
 {
     auto const result = run_cli({"validate", deck_path("warning-deck")});
 

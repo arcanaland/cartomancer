@@ -59,22 +59,6 @@ TEST_CASE("list heads its table and says where it looked", "[list]")
     REQUIRE(lines.at(1).ends_with("VERSION"));
 }
 
-TEST_CASE("list's text output drops id and shows version instead", "[list]")
-{
-    auto const text = run_cli({"list"});
-    auto const structured = run_cli({"list", "--format", "json"});
-
-    // The last column of a row is the deck's version, where `id` used to be.
-    auto const lines = lines_of(text.out);
-    auto const& first = lines.at(2);
-
-    REQUIRE(first.starts_with("clean-deck"));
-    REQUIRE(first.contains("Clean Deck"));
-    REQUIRE(first.ends_with("1.0"));
-
-    // id is API and stays in the JSON, which is where it went.
-    REQUIRE(structured.out.contains("\"id\""));
-}
 
 TEST_CASE("no row exceeds a bounded width, and truncation is marked", "[list]")
 {

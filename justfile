@@ -92,11 +92,7 @@ tidy: configure
 lint-reuse:
     reuse lint
 
-# Check that every SGR sequence lives in the presentation layer.
-#
-# src/cli/color.hpp holds the palettes — for_depth has to be constexpr and
-# header-visible so cli/text.cpp can constant-evaluate it — and color.cpp holds
-# the rest. Everywhere else names a role, never a code.
+# Checks that SGR sequences are only in the presentation layer.
 [script]
 lint-escapes:
     found=$(git ls-files 'src/*' \
@@ -105,7 +101,7 @@ lint-escapes:
 
     if [ -n "$found" ]; then
         echo "$found" >&2
-        echo "SGR escapes outside src/cli/color.{hpp,cpp}; name a theme role instead" >&2
+        echo "SGR escapes outside src/cli/color.{hpp,cpp}" >&2
         exit 1
     fi
 
