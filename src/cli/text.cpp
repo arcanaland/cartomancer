@@ -28,9 +28,10 @@ namespace
 // The widest left column in `table`, which must not be empty.
 [[nodiscard]] constexpr std::size_t widest_spelling(auto const& table)
 {
-    return std::ranges::max(table | std::views::transform([](auto const& one) {
-                                return spelling_width(one.name, one.metavar);
-                            }));
+    return std::ranges::max(
+        table |
+        std::views::transform([](auto const& one) { return spelling_width(one.name, one.metavar); })
+    );
 }
 
 inline constexpr std::size_t flag_column = widest_spelling(flags) + 2;
