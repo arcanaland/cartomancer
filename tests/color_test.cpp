@@ -133,7 +133,7 @@ TEST_CASE("what the terminal advertises is consulted only under auto and always"
         color_depth::ansi16
     );
 
-    // An explicit depth asserts; it does not ask.
+    // An explicit depth asserts
     REQUIRE(
         resolve_color_depth(color_mode::indexed_256, true, unset, tty, rich, unset) ==
         color_depth::indexed_256
@@ -213,9 +213,9 @@ TEST_CASE("a UTF-8 codeset selects the unicode glyphs", "[color]")
     }
 }
 
-TEST_CASE("glyphs and colour are independent", "[color]")
+TEST_CASE("glyphs and color are independent", "[color]")
 {
-    // NO_COLOR still gets the check mark and LC_CTYPE=C still gets colour.
+    // NO_COLOR still gets the check mark and LC_CTYPE=C still gets color.
     REQUIRE(glyphs_for_locale("en_US.UTF-8", unset, unset).ok == unicode_marks.ok);
     REQUIRE(depth_of(color_mode::automatic, false, "1", tty) == color_depth::none);
     REQUIRE(glyphs_for_locale("C", unset, unset).ok == ascii_marks.ok);
@@ -241,7 +241,7 @@ TEST_CASE("COLUMNS overrides the window, and a pipe is unbounded", "[color]")
     REQUIRE(resolve_width(pipe, unset, 120) == 0);
 }
 
-TEST_CASE("fit shortens to a column budget and marks that it did", "[color]")
+TEST_CASE("fit shortens to a column budget", "[color]")
 {
     REQUIRE(fit("short", 10, "...") == "short");
     REQUIRE(fit("short", 5, "...") == "short");
@@ -249,12 +249,12 @@ TEST_CASE("fit shortens to a column budget and marks that it did", "[color]")
     REQUIRE(fit("truncate-me", 8, "…") == "truncat…");
     REQUIRE(fit("truncate-me", 0, "...").empty());
 
-    // Cuts land on codepoint boundaries, never inside one.
+    // Cuts land on codepoint boundaries
     REQUIRE(display_width(fit("ααααα", 3, "…")) == 3);
     REQUIRE(fit("ααααα", 3, "…") == "αα…");
 
     // When even the marker will not fit, a bare cut is all that is left.
-    // Not sure why I'm testing this, but meh
+    // Not sure why we're testing this, but meh
     REQUIRE(fit("truncate-me", 2, "...") == "tr");
 }
 

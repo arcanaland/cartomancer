@@ -169,7 +169,7 @@ void write_text(
     auto const& look = sink.style;
     auto const& style = look.style;
 
-    // The deck's own name where it has one. The absolute path stays in --format json.
+    // The deck's own name when it has one
     std::string_view const named =
         subject.metadata.name.empty() ? target : std::string_view{subject.metadata.name};
 
@@ -189,7 +189,7 @@ void write_text(
             cli::severity_name(found.level), found.code, style.reset, found.message
         );
 
-        // A diagnostic with nowhere to point gets no location line at all.
+        // A diagnostic with nowhere to point so skip location line
         if (auto const where = location_of(found); !where.empty())
             sink.out << std::format(
                 "  {}{} {}{}\n", style.muted, look.mark.arrow, where, style.reset
