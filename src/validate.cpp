@@ -138,26 +138,83 @@ struct tally
     return counts;
 }
 
+[[nodiscard]] std::string describe(tally const& counts)
+{
+    std::string out;
+
+    auto const add = [&out](std::size_t many, std::string_view singular, std::string_view plural)
+    {
+        if (many == 0)
+            return;
+
+        if (!out.empty())
+            out += ", ";
+
+        out += std::format("{} {}", many, many == 1 ? singular : plural);
+    };
+
+    add(counts.error, "error", "errors");
+    add(counts.warning, "warning", "warnings");
+    add(counts.info, "info", "info");
+    add(counts.pedantic, "pedantic", "pedantic");
+
+    return out;
+}
+
 void write_text(
-    std::string_view target, std::span<arcana::diagnostic const> reported, cli::streams sink
+    std::string_view target, arcana::deck const& subject,
+    std::span<arcana::diagnostic const> reported, cli::streams sink
 )
 {
-    bool const use_color = sink.use_color;
+    auto const& look = sink.style;
+    auto const& style = look.style;
+
+    // The deck's own name when it has one
+    std::string_view const named =
+        subject.metadata.name.empty() ? target : std::string_view{subject.metadata.name};
+
+    if (reported.empty())
+    {
+        sink.out << std::format(
+            "{}{}{} {}{}{} {} no problems found\n", style.success, look.mark.ok, style.reset,
+            style.strong, named, style.reset, look.mark.dash
+        );
+        return;
+    }
 
     for (auto const& found : reported)
     {
-        auto const where = location_of(found);
         sink.out << std::format(
-            "{}{}{}: {}: {}{}\n", cli::severity_color(found.level, use_color),
-            cli::severity_name(found.level), cli::color_reset(use_color), found.code, found.message,
-            where.empty() ? std::string{} : std::format(" ({})", where)
+            "{}{}[{}]{}: {}\n", cli::severity_style(look, found.level),
+            cli::severity_name(found.level), found.code, style.reset, found.message
         );
+
+        // A diagnostic with nowhere to point so skip location line
+        if (auto const where = location_of(found); !where.empty())
+            sink.out << std::format(
+                "  {}{} {}{}\n", style.muted, look.mark.arrow, where, style.reset
+            );
     }
 
     auto const counts = count(reported);
+
+    auto mark = look.mark.ok;
+    auto worst = style.success;
+
+    if (counts.error > 0)
+    {
+        mark = look.mark.bad;
+        worst = style.error;
+    }
+    else if (counts.warning > 0)
+    {
+        mark = look.mark.warn;
+        worst = style.warning;
+    }
+
     sink.out << std::format(
-        "\n{}: {} error(s), {} warning(s), {} info, {} pedantic\n", target, counts.error,
-        counts.warning, counts.info, counts.pedantic
+        "\n{}{}{} {} in {}{}{}\n", worst, mark, style.reset, describe(counts), style.strong, named,
+        style.reset
     );
 }
 
@@ -207,7 +264,10 @@ void write_unloadable(
 {
     if (opts.format != cli::output_format::json)
     {
-        sink.err << std::format("cannot read deck {}: {}\n", target, failure.message);
+        sink.err << std::format(
+            "{}{}{} cannot read deck {}: {}\n", sink.style.style.error, sink.style.mark.bad,
+            sink.style.style.reset, target, failure.message
+        );
         return;
     }
 
@@ -270,7 +330,7 @@ cli::exit_code run_validate(
     if (opts.format == cli::output_format::json)
         write_json(what.target, subject, reported, sink);
     else
-        write_text(what.target, reported, sink);
+        write_text(what.target, subject, reported, sink);
 
     return code_for(reported);
 }

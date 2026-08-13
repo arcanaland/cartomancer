@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "color.hpp"
+
 #include <iosfwd>
 
 namespace cartomancer::cli
@@ -13,9 +15,7 @@ struct streams
 {
     std::ostream& out;
     std::ostream& err;
-
-    // Whether to emit ANSI color on out.
-    bool use_color = false;
+    theme style;
 };
 
 }  // namespace cartomancer::cli

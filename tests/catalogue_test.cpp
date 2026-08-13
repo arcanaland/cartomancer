@@ -26,7 +26,16 @@ TEST_CASE("the flag --list-codes prints one line per catalogued rule", "[catalog
     auto const result = run_cli({"--list-codes"});
 
     REQUIRE(result.status == 0);
-    REQUIRE(line_count(result.out) == arcana::rules().size());
+
+    // One row per rule, plus the column header the aligned table gained.
+    REQUIRE(line_count(result.out) == arcana::rules().size() + 1);
+
+    auto const header = result.out.substr(0, result.out.find('\n'));
+    REQUIRE(header.starts_with("CODE"));
+    REQUIRE(header.ends_with("SCHEMA"));
+    for (auto const* column : {"LEVEL", "AREA", "NEEDS"}) REQUIRE(header.contains(column));
+
+    REQUIRE_FALSE(result.out.contains('\t'));
 }
 
 TEST_CASE("the flag --list-codes reports the whole catalogue", "[catalogue]")

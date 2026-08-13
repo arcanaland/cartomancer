@@ -92,6 +92,19 @@ tidy: configure
 lint-reuse:
     reuse lint
 
+# Checks that SGR sequences are only in the presentation layer.
+[script]
+lint-escapes:
+    found=$(git ls-files 'src/*' \
+        | grep -vE '^src/cli/color\.(hpp|cpp)$' \
+        | xargs grep -nF -e '\033[' -e '\x1b[' || true)
+
+    if [ -n "$found" ]; then
+        echo "$found" >&2
+        echo "SGR escapes outside src/cli/color.{hpp,cpp}" >&2
+        exit 1
+    fi
+
 # Trash build artifacts
 clean:
     rm -rf {{build_root}} CMakeUserPresets.json

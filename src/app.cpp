@@ -33,19 +33,42 @@ void write_version(cli::streams sink)
     sink.out << std::format("libarcana {}\n", arcana::library_version());
 }
 
-[[nodiscard]] std::optional<std::string_view> ambient_no_color()
+[[nodiscard]] std::optional<std::string_view> environment(char const* name)
 {
-    // https://no-color.org <3
-    char const* value = std::getenv("NO_COLOR");
+    char const* value = std::getenv(name);
     if (value == nullptr)
         return std::nullopt;
 
     return std::string_view(value);
 }
 
+// Everything impure about presentation should happen here
+[[nodiscard]] cli::theme resolve_theme(cli::options const& requested)
+{
+    bool const tty = isatty(STDOUT_FILENO) == 1;
+
+    auto const depth = cli::resolve_color_depth(
+        requested.color, requested.color_explicit,
+        // https://no-color.org <3
+        environment("NO_COLOR"), tty, environment("COLORTERM"), environment("TERM")
+    );
+
+    return {
+        .depth = depth,
+        .style = cli::for_depth(depth),
+        .mark = cli::glyphs_for_locale(
+            environment("LC_ALL"), environment("LC_CTYPE"), environment("LANG")
+        ),
+        .width = cli::resolve_width(tty, environment("COLUMNS"), cli::window_columns()),
+    };
+}
+
 [[nodiscard]] cli::exit_code report_usage_error(std::string_view message, cli::streams sink)
 {
-    sink.err << std::format("cartomancer: {}\n", message);
+    sink.err << std::format(
+        "{}{}{} cartomancer: {}\n", sink.style.style.error, sink.style.mark.bad,
+        sink.style.style.reset, message
+    );
     sink.err << "Usage: cartomancer --help\n";
     return cli::exit_code::usage;
 }
@@ -56,7 +79,7 @@ void write_version(cli::streams sink)
 {
     if (opts.help)
     {
-        sink.out << cli::usage_text();
+        sink.out << cli::usage_text(sink.style.depth);
         return cli::exit_code::ok;
     }
 
@@ -74,7 +97,7 @@ void write_version(cli::streams sink)
 
     if (opts.which == cli::command::none)
     {
-        sink.out << cli::usage_text();
+        sink.out << cli::usage_text(sink.style.depth);
         return cli::exit_code::ok;
     }
 
@@ -116,11 +139,7 @@ int run(std::span<std::string_view const> args, cli::streams sink)
 {
     auto const parsed = cli::parse(args);
 
-    auto const requested = parsed.value_or(cli::options{});
-
-    sink.use_color = cli::resolve_color(
-        requested.color, requested.color_explicit, ambient_no_color(), isatty(STDOUT_FILENO) == 1
-    );
+    sink.style = resolve_theme(parsed.value_or(cli::options{}));
 
     return run_parsed(parsed, {}, sink);
 }
