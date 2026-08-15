@@ -190,6 +190,6 @@ TEST_CASE("a glyph set reaches the output", "[validate]")
 
     auto const result = run_cli({"validate", deck_path("clean-deck")}, unicode);
 
-    REQUIRE(result.out.contains("✓"));
-    REQUIRE(result.out.contains("—"));
+    REQUIRE(result.out.contains(cli::unicode_marks.ok));
+    REQUIRE(result.out.contains(cli::unicode_marks.dash));
 }
