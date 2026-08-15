@@ -219,7 +219,7 @@ void write_text(
 }
 
 void write_json(
-    std::string_view target, arcana::deck const& subject,
+    std::string_view target, loaded_deck const& outcome,
     std::span<arcana::diagnostic const> reported, cli::streams sink
 )
 {
@@ -246,42 +246,50 @@ void write_json(
         {"pedantic", counts.pedantic},
     };
 
+    json::document deck_id = nullptr;
+    json::document schema_version = nullptr;
+    json::document failed = nullptr;
+
+    if (outcome.has_value())
+    {
+        auto const& subject = **outcome;
+        deck_id = subject.metadata.id;
+        schema_version = subject.metadata.schema_version;
+    }
+    else
+    {
+        failed = json::document{
+            {"code", json::from_view(error_code_name(outcome.error().code))},
+            {"message", outcome.error().message},
+        };
+    }
+
     json::document const report{
         {"target", json::from_view(target)},
-        {"deck_id", subject.metadata.id},
-        {"schema_version", subject.metadata.schema_version},
+        {"deck_id", std::move(deck_id)},
+        {"schema_version", std::move(schema_version)},
         {"diagnostics", std::move(diagnostics)},
         {"summary", summary},
+        {"error", std::move(failed)},
     };
 
     json::write(sink.out, report);
 }
 
 void write_unloadable(
-    std::string_view target, arcana::error const& failure, cli::options const& opts,
-    cli::streams sink
+    std::string_view target, loaded_deck const& outcome, cli::options const& opts, cli::streams sink
 )
 {
-    if (opts.format != cli::output_format::json)
+    if (opts.format == cli::output_format::json)
     {
-        sink.err << std::format(
-            "{}{}{} cannot read deck {}: {}\n", sink.style.style.error, sink.style.mark.bad,
-            sink.style.style.reset, target, failure.message
-        );
+        write_json(target, outcome, {}, sink);
         return;
     }
 
-    json::document const failed{
-        {"code", json::from_view(error_code_name(failure.code))},
-        {"message", failure.message},
-    };
-
-    json::document const report{
-        {"target", json::from_view(target)},
-        {"error", failed},
-    };
-
-    json::write(sink.out, report);
+    sink.err << std::format(
+        "{}{}{} cannot read deck {}: {}\n", sink.style.style.error, sink.style.mark.bad,
+        sink.style.style.reset, target, outcome.error().message
+    );
 }
 
 }  // namespace
@@ -319,7 +327,7 @@ cli::exit_code run_validate(
 
     if (!what.deck.has_value())
     {
-        write_unloadable(what.target, what.deck.error(), opts, sink);
+        write_unloadable(what.target, what.deck, opts, sink);
         return cli::exit_code::unloadable;
     }
 
@@ -328,7 +336,7 @@ cli::exit_code run_validate(
     auto const reported = apply_floor(found, opts.level);
 
     if (opts.format == cli::output_format::json)
-        write_json(what.target, subject, reported, sink);
+        write_json(what.target, what.deck, reported, sink);
     else
         write_text(what.target, subject, reported, sink);
 

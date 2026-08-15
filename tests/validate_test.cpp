@@ -8,6 +8,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
+#include <filesystem>
 #include <string>
 #include <vector>
 
@@ -130,6 +131,72 @@ TEST_CASE("the flag --deck naming no discovered deck exits 3", "[validate]")
 {
     auto const result = run_cli({"validate", "--deck", "no-such-deck"});
     REQUIRE(result.status == 3);
+}
+
+TEST_CASE("an info-only deck exits 0", "[validate]")
+{
+    // --level pedantic reports everything, and neither info nor pedantic escalates
+    auto const result = run_cli({"validate", "--level", "pedantic", deck_path("clean-deck")});
+    REQUIRE(result.status == 0);
+}
+
+TEST_CASE(
+    "validate with no TARGET reads the working directory, not the reference deck", "[validate]"
+)
+{
+    auto const previous = std::filesystem::current_path();
+    std::filesystem::current_path(fixtures() / "not-a-deck");
+
+    auto const result = run_cli({"validate"});
+
+    std::filesystem::current_path(previous);
+
+    // "." is not a deck
+    REQUIRE(result.status == 3);
+}
+
+TEST_CASE("an unreadable deck reports the error object on stdout", "[validate]")
+{
+    auto const result = run_cli({"validate", "--format", "json", "/nonexistent-deck-path"});
+
+    REQUIRE(result.status == 3);
+    REQUIRE(result.out.contains("\"error\""));
+    REQUIRE(result.out.contains("\"code\": \"not_found\""));
+    REQUIRE(result.out.contains("\"message\""));
+    REQUIRE(result.err.empty());
+}
+
+TEST_CASE("the json envelope carries every key on both paths", "[validate]")
+{
+    auto const readable = run_cli({"validate", "--format", "json", deck_path("error-deck")});
+    auto const unreadable = run_cli({"validate", "--format", "json", "/nonexistent-deck-path"});
+
+    for (auto const* field :
+         {"target", "deck_id", "schema_version", "diagnostics", "summary", "error"})
+    {
+        auto const key = std::string{'"'} + field + '"';
+        REQUIRE(readable.out.contains(key));
+        REQUIRE(unreadable.out.contains(key));
+    }
+}
+
+TEST_CASE("an unreadable deck renders no verdict", "[validate]")
+{
+    auto const result = run_cli({"validate", "--format", "json", "/nonexistent-deck-path"});
+
+    REQUIRE(result.out.contains("\"deck_id\": null"));
+    REQUIRE(result.out.contains("\"schema_version\": null"));
+    REQUIRE(result.out.contains("\"diagnostics\": []"));
+    REQUIRE(result.out.contains("\"error\": 0"));
+    REQUIRE_FALSE(result.out.contains("\"level\""));
+}
+
+TEST_CASE("a readable deck writes error as null", "[validate]")
+{
+    auto const result = run_cli({"validate", "--format", "json", deck_path("clean-deck")});
+
+    REQUIRE(result.status == 0);
+    REQUIRE(result.out.contains("\"error\": null"));
 }
 
 TEST_CASE("text output has no escape sequences when color is off", "[validate]")
