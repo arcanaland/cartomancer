@@ -291,7 +291,7 @@ void write_json(arcana::deck_library const& library, cli::streams sink)
                 {"id", summary.id},
                 {"name", summary.name},
                 {"version", summary.version},
-                {"author", summary.author},
+                {"artist", summary.artist},
                 {"icon", json::from_path(summary.icon)},
                 {"card_count", summary.card_count},
             }

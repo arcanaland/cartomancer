@@ -114,8 +114,6 @@ struct glyphs
     std::string_view warn;
     std::string_view arrow;
     std::string_view ellipsis;
-
-    // The em dash in `ok nano-tarot - no problems found`.
     std::string_view dash;
 };
 
@@ -125,7 +123,7 @@ inline constexpr glyphs unicode_marks{
     .warn = "⚠",
     .arrow = "→",
     .ellipsis = "…",
-    .dash = "—",
+    .dash = "·",
 };
 
 inline constexpr glyphs ascii_marks{
