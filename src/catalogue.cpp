@@ -9,6 +9,7 @@
 #include <arcana/validation.hpp>
 
 #include <format>
+#include <optional>
 #include <ostream>
 
 namespace cartomancer
@@ -31,6 +32,26 @@ namespace
     return "unknown";
 }
 
+// Whether the library actually runs a check for this rule, which is the
+// difference between "this deck passed" and "nobody has written the rule yet".
+//
+// arcana::state_of is empty only for a code the catalogue does not carry, which
+// a rule out of arcana::rules() never is; naming that case rather than
+// assuming it away is the point of the column.
+[[nodiscard]] std::string_view state_name(arcana::rule const& entry) noexcept
+{
+    auto const state = arcana::state_of(entry.code);
+    return state.has_value() ? cli::rule_state_name(*state) : "unknown";
+}
+
+[[nodiscard]] std::string_view state_style(
+    cli::theme const& look, arcana::rule const& entry
+) noexcept
+{
+    auto const state = arcana::state_of(entry.code);
+    return state.has_value() ? cli::rule_state_style(look, *state) : look.style.muted;
+}
+
 [[nodiscard]] std::string applies_to(arcana::rule const& entry)
 {
     if (entry.applies_to.min == entry.applies_to.max)
@@ -43,6 +64,7 @@ namespace
 struct columns
 {
     std::size_t code = 0;
+    std::size_t state = 0;
     std::size_t level = 0;
     std::size_t area = 0;
     std::size_t needs = 0;
@@ -59,6 +81,7 @@ struct columns
 {
     return json::document{
         {"code", json::from_view(entry.code)},
+        {"state", json::from_view(state_name(entry))},
         {"default_level", json::from_view(cli::severity_name(entry.default_level))},
         {"area", json::from_view(entry.area)},
         {"needs", json::from_view(phase_name(entry.needs))},
@@ -88,6 +111,7 @@ cli::exit_code run_list_codes(cli::options const& opts, cli::streams sink)
 
     columns widest{
         .code = cli::display_width("CODE"),
+        .state = cli::display_width("STATE"),
         .level = cli::display_width("LEVEL"),
         .area = cli::display_width("AREA"),
         .needs = cli::display_width("NEEDS"),
@@ -96,6 +120,7 @@ cli::exit_code run_list_codes(cli::options const& opts, cli::streams sink)
     for (auto const& entry : catalogue)
     {
         widest.code = std::max(widest.code, cli::display_width(entry.code));
+        widest.state = std::max(widest.state, cli::display_width(state_name(entry)));
         widest.level =
             std::max(widest.level, cli::display_width(cli::severity_name(entry.default_level)));
         widest.area = std::max(widest.area, cli::display_width(entry.area));
@@ -103,15 +128,16 @@ cli::exit_code run_list_codes(cli::options const& opts, cli::streams sink)
     }
 
     sink.out << std::format(
-        "{}{}  {}  {}  {}  SCHEMA{}\n", style.muted, pad("CODE", widest.code),
-        pad("LEVEL", widest.level), pad("AREA", widest.area), pad("NEEDS", widest.needs),
-        style.reset
+        "{}{}  {}  {}  {}  {}  SCHEMA{}\n", style.muted, pad("CODE", widest.code),
+        pad("STATE", widest.state), pad("LEVEL", widest.level), pad("AREA", widest.area),
+        pad("NEEDS", widest.needs), style.reset
     );
 
     for (auto const& entry : catalogue)
     {
         sink.out << std::format(
-            "{}{}{}  {}{}{}  {}  {}  {}{}\n", style.accent, pad(entry.code, widest.code),
+            "{}{}{}  {}{}{}  {}{}{}  {}  {}  {}{}\n", style.accent, pad(entry.code, widest.code),
+            style.reset, state_style(look, entry), pad(state_name(entry), widest.state),
             style.reset, cli::severity_style(look, entry.default_level),
             pad(cli::severity_name(entry.default_level), widest.level), style.reset,
             pad(entry.area, widest.area), pad(phase_name(entry.needs), widest.needs),
@@ -158,6 +184,7 @@ cli::exit_code run_explain(cli::options const& opts, std::string_view code, cli:
     );
     sink.out << std::format("{}\n\n", entry->explanation);
 
+    field("state:        ", state_name(*entry));
     field("area:         ", entry->area);
     field("needs:        ", phase_name(entry->needs));
     field("spec:         ", entry->spec_ref);

@@ -180,6 +180,11 @@ struct theme
 // The style a severity is printed in
 [[nodiscard]] std::string_view severity_style(theme const& t, arcana::severity level) noexcept;
 
+// The style a rule's implementation state is printed in. A rule nothing checks
+// is dimmed, because a reader scanning the catalogue should see at a glance
+// which rows can actually say anything about a deck.
+[[nodiscard]] std::string_view rule_state_style(theme const& t, arcana::rule_state state) noexcept;
+
 [[nodiscard]] std::size_t display_width(std::string_view text) noexcept;
 
 // text, shortened to at most limit columns and ending in ellipsis when it

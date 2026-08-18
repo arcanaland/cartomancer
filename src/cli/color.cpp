@@ -186,6 +186,19 @@ std::string_view severity_style(theme const& t, arcana::severity level) noexcept
     return {};
 }
 
+std::string_view rule_state_style(theme const& t, arcana::rule_state state) noexcept
+{
+    switch (state)
+    {
+        case arcana::rule_state::checked:
+            return t.style.success;
+        case arcana::rule_state::pending:
+        case arcana::rule_state::deferred:
+            return t.style.muted;
+    }
+    return {};
+}
+
 std::size_t display_width(std::string_view text) noexcept
 {
     // Every byte but a UTF-8 continuation starts a new column.
