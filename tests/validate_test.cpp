@@ -172,7 +172,7 @@ TEST_CASE("the json envelope carries every key on both paths", "[validate]")
     auto const unreadable = run_cli({"validate", "--format", "json", "/nonexistent-deck-path"});
 
     for (auto const* field :
-         {"target", "deck_id", "schema_version", "diagnostics", "summary", "error"})
+         {"target", "deck_identifier", "schema_version", "diagnostics", "summary", "error"})
     {
         auto const key = std::string{'"'} + field + '"';
         REQUIRE(readable.out.contains(key));
@@ -184,7 +184,7 @@ TEST_CASE("an unreadable deck renders no verdict", "[validate]")
 {
     auto const result = run_cli({"validate", "--format", "json", "/nonexistent-deck-path"});
 
-    REQUIRE(result.out.contains("\"deck_id\": null"));
+    REQUIRE(result.out.contains("\"deck_identifier\": null"));
     REQUIRE(result.out.contains("\"schema_version\": null"));
     REQUIRE(result.out.contains("\"diagnostics\": []"));
     REQUIRE(result.out.contains("\"error\": 0"));

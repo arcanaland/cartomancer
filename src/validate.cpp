@@ -246,14 +246,14 @@ void write_json(
         {"pedantic", counts.pedantic},
     };
 
-    json::document deck_id = nullptr;
+    json::document deck_identifier = nullptr;
     json::document schema_version = nullptr;
     json::document failed = nullptr;
 
     if (outcome.has_value())
     {
         auto const& subject = **outcome;
-        deck_id = subject.metadata.id;
+        deck_identifier = subject.metadata.identifier;
         schema_version = subject.metadata.schema_version;
     }
     else
@@ -266,7 +266,7 @@ void write_json(
 
     json::document const report{
         {"target", json::from_view(target)},
-        {"deck_id", std::move(deck_id)},
+        {"deck_identifier", std::move(deck_identifier)},
         {"schema_version", std::move(schema_version)},
         {"diagnostics", std::move(diagnostics)},
         {"summary", summary},
