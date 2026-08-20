@@ -3,11 +3,14 @@
 
 #include "harness.hpp"
 
+#include "cli/text.hpp"
+
 #include <arcana/validation.hpp>
 #include <catch2/catch_test_macros.hpp>
 
 #include <algorithm>
 #include <string>
+#include <string_view>
 
 using namespace cartomancer::testing;  // NOLINT(google-build-using-namespace)
 
@@ -17,6 +20,18 @@ namespace
 [[nodiscard]] std::size_t line_count(std::string const& text)
 {
     return static_cast<std::size_t>(std::ranges::count(text, '\n'));
+}
+
+[[nodiscard]] std::string_view line_containing(std::string const& text, std::string_view needle)
+{
+    auto const at = text.find(needle);
+    if (at == std::string::npos)
+        return {};
+
+    auto const from = text.rfind('\n', at);
+    auto const start = from == std::string::npos ? 0 : from + 1;
+
+    return std::string_view{text}.substr(start, text.find('\n', at) - start);
 }
 
 }  // namespace
@@ -33,7 +48,7 @@ TEST_CASE("the flag --list-codes prints one line per catalogued rule", "[catalog
     auto const header = result.out.substr(0, result.out.find('\n'));
     REQUIRE(header.starts_with("CODE"));
     REQUIRE(header.ends_with("SCHEMA"));
-    for (auto const* column : {"LEVEL", "AREA", "NEEDS"}) REQUIRE(header.contains(column));
+    for (auto const* column : {"STATE", "LEVEL", "AREA", "NEEDS"}) REQUIRE(header.contains(column));
 
     REQUIRE_FALSE(result.out.contains('\t'));
 }
@@ -62,6 +77,56 @@ TEST_CASE("the flag --list-codes --format json lists every rule", "[catalogue]")
     REQUIRE(result.out.contains("\"rules\""));
     REQUIRE(result.out.contains("\"code\""));
     for (auto const& entry : arcana::rules()) REQUIRE(result.out.contains(entry.code));
+}
+
+TEST_CASE("the flag --list-codes reports each rule's implementation state", "[catalogue]")
+{
+    auto const result = run_cli({"--list-codes"});
+
+    REQUIRE(result.status == 0);
+
+    for (auto const& entry : arcana::rules())
+    {
+        INFO("rule: " << entry.code);
+
+        auto const state = arcana::state_of(entry.code);
+        REQUIRE(state.has_value());
+
+        auto const line = line_containing(result.out, entry.code);
+        REQUIRE(line.contains(cartomancer::cli::rule_state_name(*state)));
+    }
+}
+
+TEST_CASE("the flag --list-codes --format json carries the state", "[catalogue]")
+{
+    auto const result = run_cli({"--list-codes", "--format", "json"});
+
+    REQUIRE(result.status == 0);
+    REQUIRE(result.out.contains("\"state\""));
+
+    for (auto const& entry : arcana::rules())
+    {
+        INFO("rule: " << entry.code);
+
+        auto const state = arcana::state_of(entry.code);
+        REQUIRE(state.has_value());
+        REQUIRE(result.out.contains(
+            std::string{"\""} + std::string{cartomancer::cli::rule_state_name(*state)} + "\""
+        ));
+    }
+}
+
+TEST_CASE("the flag --explain reports the implementation state", "[catalogue]")
+{
+    auto const& first = arcana::rules().front();
+    auto const state = arcana::state_of(first.code);
+    REQUIRE(state.has_value());
+
+    auto const result = run_cli({"--explain", first.code});
+
+    REQUIRE(result.status == 0);
+    REQUIRE(result.out.contains("state:"));
+    REQUIRE(result.out.contains(cartomancer::cli::rule_state_name(*state)));
 }
 
 TEST_CASE("the flag --explain prints one catalogue entry", "[catalogue]")

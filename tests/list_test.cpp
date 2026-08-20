@@ -114,7 +114,8 @@ TEST_CASE("list --format json contains the deck_summary field names", "[list]")
     REQUIRE(result.out.contains("\"malformed\""));
 
     for (auto const* field :
-         {"directory_name", "path", "id", "name", "version", "artist", "icon", "card_count"})
+         {"directory_name", "path", "identifier", "name", "version", "artist", "icon",
+          "card_count"})
         REQUIRE(result.out.contains(std::string{'"'} + field + '"'));
 }
 

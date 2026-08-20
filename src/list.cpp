@@ -288,7 +288,7 @@ void write_json(arcana::deck_library const& library, cli::streams sink)
             json::document{
                 {"directory_name", summary.directory_name},
                 {"path", json::from_path(summary.path)},
-                {"id", summary.id},
+                {"identifier", summary.identifier},
                 {"name", summary.name},
                 {"version", summary.version},
                 {"artist", summary.artist},

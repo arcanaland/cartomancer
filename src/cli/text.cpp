@@ -190,6 +190,20 @@ std::string_view severity_name(arcana::severity level) noexcept
     return "unknown";
 }
 
+std::string_view rule_state_name(arcana::rule_state state) noexcept
+{
+    switch (state)
+    {
+        case arcana::rule_state::checked:
+            return "checked";
+        case arcana::rule_state::pending:
+            return "pending";
+        case arcana::rule_state::deferred:
+            return "deferred";
+    }
+    return "unknown";
+}
+
 std::string_view usage_text(color_depth depth) noexcept
 {
     switch (depth)
