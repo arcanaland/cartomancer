@@ -22,7 +22,6 @@ namespace
     return static_cast<std::size_t>(std::ranges::count(text, '\n'));
 }
 
-// The one row of --list-codes that carries this code.
 [[nodiscard]] std::string_view line_containing(std::string const& text, std::string_view needle)
 {
     auto const at = text.find(needle);
@@ -80,9 +79,6 @@ TEST_CASE("the flag --list-codes --format json lists every rule", "[catalogue]")
     for (auto const& entry : arcana::rules()) REQUIRE(result.out.contains(entry.code));
 }
 
-// The honesty property --list-codes exists for: a reader must be able to tell a
-// rule the library checks from one it merely catalogues, and the answer comes
-// from the library rather than from a list maintained here.
 TEST_CASE("the flag --list-codes reports each rule's implementation state", "[catalogue]")
 {
     auto const result = run_cli({"--list-codes"});
@@ -108,8 +104,6 @@ TEST_CASE("the flag --list-codes --format json carries the state", "[catalogue]"
     REQUIRE(result.status == 0);
     REQUIRE(result.out.contains("\"state\""));
 
-    // The vocabulary is the library's, not a spelling invented here: every
-    // state the catalogue actually holds is spelled out in the JSON.
     for (auto const& entry : arcana::rules())
     {
         INFO("rule: " << entry.code);

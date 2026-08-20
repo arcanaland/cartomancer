@@ -32,12 +32,7 @@ namespace
     return "unknown";
 }
 
-// Whether the library actually runs a check for this rule, which is the
-// difference between "this deck passed" and "nobody has written the rule yet".
-//
-// arcana::state_of is empty only for a code the catalogue does not carry, which
-// a rule out of arcana::rules() never is; naming that case rather than
-// assuming it away is the point of the column.
+// Whether the library actually runs a check for this rule
 [[nodiscard]] std::string_view state_name(arcana::rule const& entry) noexcept
 {
     auto const state = arcana::state_of(entry.code);
