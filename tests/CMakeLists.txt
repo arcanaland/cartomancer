@@ -15,6 +15,8 @@ target_sources(
         color_test.cpp
         json_test.cpp
         list_test.cpp
+        render_test.cpp
+        show_test.cpp
         validate_test.cpp
 )
 

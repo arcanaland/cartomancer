@@ -11,7 +11,7 @@ class CartomancerConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
 
     # TODO: add arcana here when we package it as a conan package
-    requires = "nlohmann_json/3.12.0"
+    requires = "nlohmann_json/3.12.0", "stb/cci.20230920"
     test_requires = "catch2/3.15.2"
 
     def layout(self):

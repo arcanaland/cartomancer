@@ -1,0 +1,11 @@
+# A deck that ships artwork, so the renderer has something to draw.
+[deck]
+schema_version = "2.0"
+name = "Art Deck"
+version = "1.0"
+identifier = "org.example/deck/art-deck"
+aspect_ratio = 0.625
+
+[excluded_cards]
+cards = ["major_arcana.21"]
+reason = "the fixture leaves the world out on purpose"

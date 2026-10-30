@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <array>
 #include <cstddef>
+#include <format>
+#include <ostream>
 #include <ranges>
 #include <string>
 
@@ -99,12 +101,24 @@ constexpr void append_flags(std::string& out, help_section which, palette const&
     append_flags(out, help_section::list, style);
 
     out += '\n';
+    append_heading(out, "Show flags:", style);
+    append_flags(out, help_section::show, style);
+
+    out += '\n';
+    append_heading(out, "Draw flags:", style);
+    append_flags(out, help_section::draw, style);
+
+    out += '\n';
     append_heading(out, "Global flags:", style);
     append_flags(out, help_section::global, style);
 
     out += R"(
 TARGET is a deck directory, or a discovered deck's directory name. Passing
-both --deck and TARGET is a usage error.
+both --deck and TARGET is a usage error. Where neither is given, `show` and
+`draw` fall back to the library's reference deck.
+
+Art is drawn with half-block glyphs and needs color: at --color=never, under
+NO_COLOR, or into a pipe, `show` and `draw` print the info panel alone.
 
 )";
 
@@ -202,6 +216,14 @@ std::string_view rule_state_name(arcana::rule_state state) noexcept
             return "deferred";
     }
     return "unknown";
+}
+
+void write_problem(streams const& sink, std::string_view message)
+{
+    sink.err << std::format(
+        "{}{}{} cartomancer: {}\n", sink.style.style.error, sink.style.mark.bad,
+        sink.style.style.reset, message
+    );
 }
 
 std::string_view usage_text(color_depth depth) noexcept

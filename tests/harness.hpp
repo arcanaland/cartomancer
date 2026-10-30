@@ -29,6 +29,18 @@ namespace cartomancer::testing
     return fixtures() / "library";
 }
 
+// The root holding the one deck that ships artwork. It is kept out of
+// library/ so that adding it did not move every count the list tests assert.
+[[nodiscard]] inline std::filesystem::path art_root()
+{
+    return fixtures() / "art";
+}
+
+[[nodiscard]] inline std::filesystem::path art_deck()
+{
+    return art_root() / "art-deck";
+}
+
 // One CLI invocation
 struct invocation
 {
@@ -43,9 +55,9 @@ struct invocation
     return {.depth = depth, .style = cli::for_depth(depth)};
 }
 
-// Run the CLI in-process against the fixture library.
-[[nodiscard]] inline invocation run_cli(
-    std::initializer_list<std::string_view> args, cli::theme look = {}
+// Run the CLI in-process against a library.
+[[nodiscard]] inline invocation run_cli_with(
+    arcana::library_options options, std::initializer_list<std::string_view> args, cli::theme look
 )
 {
     std::vector<std::string_view> const argv(args);
@@ -53,13 +65,34 @@ struct invocation
     std::ostringstream out;
     std::ostringstream err;
 
-    arcana::library_options options;
-    options.roots = {library_root()};
-
     cli::streams sink{.out = out, .err = err, .style = look};
     int const status = run_with_library(argv, std::move(options), sink);
 
     return {.status = status, .out = out.str(), .err = err.str()};
+}
+
+// Run the CLI in-process against the fixture library.
+[[nodiscard]] inline invocation run_cli(
+    std::initializer_list<std::string_view> args, cli::theme look = {}
+)
+{
+    arcana::library_options options;
+    options.roots = {library_root()};
+
+    return run_cli_with(std::move(options), args, look);
+}
+
+// Run the CLI against the art root, with art-deck as the reference deck so
+// that `show` and `draw` resolve a deck without being told one.
+[[nodiscard]] inline invocation run_art_cli(
+    std::initializer_list<std::string_view> args, cli::theme look = {}
+)
+{
+    arcana::library_options options;
+    options.roots = {art_root()};
+    options.reference_deck = art_deck();
+
+    return run_cli_with(std::move(options), args, look);
 }
 
 }  // namespace cartomancer::testing

@@ -5,6 +5,7 @@ configure_file(version.hpp.in
                ${PROJECT_BINARY_DIR}/generated/include/cartomancer/version.hpp @ONLY)
 
 add_subdirectory(cli)
+add_subdirectory(render)
 
 add_library(cartomancer-core STATIC)
 add_library(cartomancer::core ALIAS cartomancer-core)
@@ -20,14 +21,20 @@ target_sources(
             ${PROJECT_BINARY_DIR}/generated/include/cartomancer/version.hpp
             app.hpp
             catalogue.hpp
+            draw.hpp
             json.hpp
             list.hpp
+            show.hpp
+            target.hpp
             validate.hpp
     PRIVATE
         app.cpp
         catalogue.cpp
+        draw.cpp
         json.cpp
         list.cpp
+        show.cpp
+        target.cpp
         validate.cpp
 )
 
@@ -38,6 +45,7 @@ target_link_libraries(
     PUBLIC
         arcana::arcana
         cartomancer::cli
+        cartomancer::render
         nlohmann_json::nlohmann_json
   )
 

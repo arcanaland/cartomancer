@@ -5,10 +5,12 @@
 
 #include "surface.hpp"
 
+#include <cstddef>
 #include <expected>
 #include <format>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 
 namespace cartomancer::cli
@@ -80,6 +82,8 @@ class cursor
     if (found == nullptr)
         return std::unexpected(std::format("unknown flag: {}", spelled.name));
 
+    state.seen.push_back(found->name);
+
     // Reject before consuming
     if (!found->takes_value())
         return found->apply("", opts, state);
@@ -91,24 +95,104 @@ class cursor
     return found->apply(*value, opts, state);
 }
 
-// Handle one bare word: the subcommand if we have not seen one, else TARGET.
-[[nodiscard]] outcome apply_positional(std::string_view word, options& opts, bool& saw_command)
+// How many bare words the subcommand has taken so far.
+struct positionals
 {
-    if (!saw_command)
+    bool saw_command = false;
+    std::size_t taken = 0;
+};
+
+// One bare word after the subcommand. Which slot it fills is the subcommand's
+// business: `show` takes CARD-ID then TARGET, `draw` takes N, and the rest
+// take TARGET.
+[[nodiscard]] outcome fill_slot(std::string_view word, options& opts, std::size_t slot)
+{
+    auto const unexpected_here = [word]
+    { return std::unexpected(std::format("unexpected argument: {}", word)); };
+
+    switch (opts.which)
+    {
+        case command::show:
+            if (slot == 0)
+            {
+                opts.card = std::string(word);
+                return {};
+            }
+            if (slot == 1)
+            {
+                opts.target = std::string(word);
+                return {};
+            }
+            return unexpected_here();
+
+        case command::draw:
+        {
+            if (slot != 0)
+                return unexpected_here();
+
+            auto const count = parse_count(word);
+            if (!count.has_value())
+                return std::unexpected(std::format("draw takes a whole number, not '{}'", word));
+
+            opts.count = *count;
+            return {};
+        }
+
+        case command::validate:
+        case command::list:
+        case command::none:
+            if (slot != 0)
+                return unexpected_here();
+
+            opts.target = std::string(word);
+            return {};
+    }
+
+    return unexpected_here();
+}
+
+// Handle one bare word: the subcommand if we have not seen one, else a slot.
+[[nodiscard]] outcome apply_positional(std::string_view word, options& opts, positionals& where)
+{
+    if (!where.saw_command)
     {
         subcommand const* const which = find_subcommand(word);
         if (which == nullptr)
             return std::unexpected(std::format("unknown subcommand: {}", word));
 
         opts.which = which->which;
-        saw_command = true;
+        where.saw_command = true;
         return {};
     }
 
-    if (opts.target.has_value())
-        return std::unexpected(std::format("unexpected argument: {}", word));
+    return fill_slot(word, opts, where.taken++);
+}
 
-    opts.target = std::string(word);
+// Reject a flag that belongs to a different subcommand.
+//
+// Global flags go everywhere. Anything else is a usage error rather than a
+// silent no-op, which is what makes `show --format json` exit 4 instead of
+// quietly rendering text.
+[[nodiscard]] outcome check_sections(options const& opts, parse_state const& state)
+{
+    if (opts.which == command::none)
+        return {};
+
+    auto const mine = section_of(opts.which);
+
+    for (auto const& name : state.seen)
+    {
+        flag const* const found = find_flag(name);
+        if (found == nullptr)
+            continue;
+
+        if (has_section(found->sections, help_section::global) ||
+            has_section(found->sections, mine))
+            continue;
+
+        return std::unexpected(std::format("{} is not a flag of `{}`", name, name_of(opts.which)));
+    }
+
     return {};
 }
 
@@ -119,7 +203,7 @@ parse_result parse(std::span<std::string_view const> args)
     options opts;
     parse_state state;
     cursor walk(args);
-    bool saw_command = false;
+    positionals where;
 
     while (!walk.done())
     {
@@ -127,7 +211,7 @@ parse_result parse(std::span<std::string_view const> args)
 
         auto applied = argument.starts_with('-') && argument != "-"
                            ? apply_flag(split(argument), walk, opts, state)
-                           : apply_positional(argument, opts, saw_command);
+                           : apply_positional(argument, opts, where);
 
         if (!applied.has_value())
             return std::unexpected(std::move(applied).error());
@@ -135,6 +219,9 @@ parse_result parse(std::span<std::string_view const> args)
 
     if (opts.deck.has_value() && opts.target.has_value())
         return std::unexpected("pass either --deck NAME or a positional TARGET, not both");
+
+    if (auto const sections = check_sections(opts, state); !sections.has_value())
+        return std::unexpected(sections.error());
 
     opts.color_explicit = state.color_set;
 
