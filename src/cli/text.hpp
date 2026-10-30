@@ -6,6 +6,7 @@
 #pragma once
 
 #include "color.hpp"
+#include "streams.hpp"
 
 #include <arcana/validation.hpp>
 
@@ -19,6 +20,9 @@ namespace cartomancer::cli
 
 // The spelling of a rule's implementation state in both outputs.
 [[nodiscard]] std::string_view rule_state_name(arcana::rule_state state) noexcept;
+
+// The `x cartomancer: <message>` line every command reports a failure on.
+void write_problem(streams const& sink, std::string_view message);
 
 // The --help text styled for a color depth.
 [[nodiscard]] std::string_view usage_text(color_depth depth) noexcept;

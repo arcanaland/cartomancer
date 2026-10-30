@@ -7,7 +7,9 @@
 #include "cli/color.hpp"
 #include "cli/parse.hpp"
 #include "cli/text.hpp"
+#include "draw.hpp"
 #include "list.hpp"
+#include "show.hpp"
 #include "validate.hpp"
 
 #include <arcana/version.hpp>
@@ -60,15 +62,13 @@ void write_version(cli::streams sink)
             environment("LC_ALL"), environment("LC_CTYPE"), environment("LANG")
         ),
         .width = cli::resolve_width(tty, environment("COLUMNS"), cli::window_columns()),
+        .lines = cli::resolve_lines(environment("LINES"), cli::window_rows()),
     };
 }
 
 [[nodiscard]] cli::exit_code report_usage_error(std::string_view message, cli::streams sink)
 {
-    sink.err << std::format(
-        "{}{}{} cartomancer: {}\n", sink.style.style.error, sink.style.mark.bad,
-        sink.style.style.reset, message
-    );
+    cli::write_problem(sink, message);
     sink.err << "Usage: cartomancer --help\n";
     return cli::exit_code::usage;
 }
@@ -109,6 +109,10 @@ void write_version(cli::streams sink)
             return run_validate(opts, library, sink);
         case cli::command::list:
             return run_list(opts, library, sink);
+        case cli::command::show:
+            return run_show(opts, library, sink);
+        case cli::command::draw:
+            return run_draw(opts, library, sink);
         case cli::command::none:
             break;
     }

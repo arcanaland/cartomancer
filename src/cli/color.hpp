@@ -37,6 +37,16 @@ enum class color_depth : std::uint8_t
 
 inline constexpr char sgr_escape = '\033';
 
+// One 24-bit color, as the renderer computes them.
+struct rgb
+{
+    std::uint8_t red = 0;
+    std::uint8_t green = 0;
+    std::uint8_t blue = 0;
+
+    friend bool operator==(rgb, rgb) = default;
+};
+
 struct palette
 {
     // Bold (headings, deck names, etc)
@@ -143,7 +153,11 @@ struct theme
 
     glyphs mark = ascii_marks;
 
+    // 0 when the output is not a terminal, meaning "as wide as it needs to be".
     std::size_t width = 0;
+
+    // Unlike the width there is no unbounded answer; see resolve_lines().
+    std::size_t lines = 24;
 };
 
 [[nodiscard]] std::optional<color_mode> parse_color_mode(std::string_view when) noexcept;
@@ -173,9 +187,52 @@ struct theme
 // The terminal's own idea of its width
 [[nodiscard]] std::optional<std::size_t> window_columns() noexcept;
 
+// The terminal's own idea of its height
+[[nodiscard]] std::optional<std::size_t> window_rows() noexcept;
+
 [[nodiscard]] std::size_t resolve_width(
     bool tty, std::optional<std::string_view> columns, std::optional<std::size_t> window
 ) noexcept;
+
+// How many rows tall the terminal is taken to be.
+//
+// Unlike the width there is no "unbounded" answer: art has to be sized against
+// something, so a terminal that will not say falls back to the classic 24.
+//
+// @param lines  the LINES environment variable, if present
+// @param window what TIOCGWINSZ said, if anything
+[[nodiscard]] std::size_t resolve_lines(
+    std::optional<std::string_view> lines, std::optional<std::size_t> window
+) noexcept;
+
+// The xterm-256 index nearest to a color: the 6x6x6 cube and the 24-step grey
+// ramp, whichever is nearer by squared distance.
+[[nodiscard]] std::uint8_t index_256(rgb color) noexcept;
+
+// The nearest of the sixteen ANSI colors.
+[[nodiscard]] std::uint8_t index_16(rgb color) noexcept;
+
+// Paints half-block cells, emitting only the escapes that changed.
+//
+// The renderer computes colors and never spells an escape; this is where they
+// are spelled, which is what keeps `just lint-escapes` honest. One writer per
+// output line: it starts with nothing set and clear() ends the line.
+class sgr_writer
+{
+  public:
+    explicit sgr_writer(color_depth depth) noexcept : depth_(depth) {}
+
+    // Append whatever it takes to make the foreground and background these.
+    void paint(std::string& out, rgb foreground, rgb background);
+
+    // Append a reset, if anything is currently set.
+    void clear(std::string& out);
+
+  private:
+    color_depth depth_;
+    std::optional<rgb> foreground_;
+    std::optional<rgb> background_;
+};
 
 // The style a severity is printed in
 [[nodiscard]] std::string_view severity_style(theme const& t, arcana::severity level) noexcept;
@@ -183,6 +240,13 @@ struct theme
 // The style a rule's implementation state is printed in.
 [[nodiscard]] std::string_view rule_state_style(theme const& t, arcana::rule_state state) noexcept;
 
+// How many terminal columns text occupies.
+//
+// Every codepoint counts as one column. That is wrong for wide CJK and for
+// multi-codepoint grapheme clusters, which will misalign a padded column, and
+// it is a deliberate limit: wcwidth is locale-dependent and hostile to a
+// static binary, so the approximation is documented in README.md rather than
+// papered over.
 [[nodiscard]] std::size_t display_width(std::string_view text) noexcept;
 
 // text, shortened to at most limit columns and ending in ellipsis when it

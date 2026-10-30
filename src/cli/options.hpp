@@ -7,6 +7,7 @@
 
 #include <arcana/validation.hpp>
 
+#include <cstddef>
 #include <cstdint>
 #include <optional>
 #include <string>
@@ -48,6 +49,8 @@ enum class command : std::uint8_t
     none,
     validate,
     list,
+    show,
+    draw,
 };
 
 // A parsed command line
@@ -61,6 +64,12 @@ struct options
     // The positional TARGET
     std::optional<std::string> target;
 
+    // show's positional CARD-ID, unparsed
+    std::optional<std::string> card;
+
+    // draw's positional N
+    std::size_t count = 1;
+
     output_format format = output_format::text;
 
     // The --level floor
@@ -70,6 +79,15 @@ struct options
     std::optional<std::string> explain;
 
     bool list_codes = false;
+
+    // --lines N, show's target height in rows
+    std::optional<std::size_t> lines;
+
+    // --no-art
+    bool no_art = false;
+
+    // --seed S
+    std::optional<std::uint64_t> seed;
 
     color_mode color = color_mode::automatic;
 

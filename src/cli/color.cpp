@@ -6,7 +6,11 @@
 #include <sys/ioctl.h>
 #include <unistd.h>
 #include <algorithm>
+#include <array>
 #include <cctype>
+#include <cstdlib>
+#include <format>
+#include <limits>
 
 namespace cartomancer::cli
 {
@@ -16,6 +20,9 @@ namespace
 
 // What a terminal is assumed to be when it has a window but will not say how wide.
 constexpr std::size_t fallback_width = 80;
+
+// The classic terminal height, for when nothing will say.
+constexpr std::size_t fallback_lines = 24;
 
 constexpr unsigned char continuation_mask = 0xC0U;
 constexpr unsigned char continuation_bits = 0x80U;
@@ -148,13 +155,37 @@ glyphs glyphs_for_locale(
     return names_utf8(effective_locale(lc_all, lc_ctype, lang)) ? unicode_marks : ascii_marks;
 }
 
-std::optional<std::size_t> window_columns() noexcept
+namespace
+{
+
+// What TIOCGWINSZ says about stdout, if it says anything.
+[[nodiscard]] std::optional<winsize> query_window() noexcept
 {
     winsize window{};
-    if (::ioctl(STDOUT_FILENO, TIOCGWINSZ, &window) != 0 || window.ws_col == 0)
+    if (::ioctl(STDOUT_FILENO, TIOCGWINSZ, &window) != 0)
         return std::nullopt;
 
-    return window.ws_col;
+    return window;
+}
+
+}  // namespace
+
+std::optional<std::size_t> window_columns() noexcept
+{
+    auto const window = query_window();
+    if (!window.has_value() || window->ws_col == 0)
+        return std::nullopt;
+
+    return window->ws_col;
+}
+
+std::optional<std::size_t> window_rows() noexcept
+{
+    auto const window = query_window();
+    if (!window.has_value() || window->ws_row == 0)
+        return std::nullopt;
+
+    return window->ws_row;
 }
 
 std::size_t resolve_width(
@@ -168,6 +199,16 @@ std::size_t resolve_width(
         return 0;
 
     return window.value_or(fallback_width);
+}
+
+std::size_t resolve_lines(
+    std::optional<std::string_view> lines, std::optional<std::size_t> window
+) noexcept
+{
+    if (auto const asked = whole_number(lines.value_or(std::string_view{})); asked > 0)
+        return asked;
+
+    return window.value_or(fallback_lines);
 }
 
 std::string_view severity_style(theme const& t, arcana::severity level) noexcept
@@ -241,6 +282,202 @@ std::string fit(std::string_view text, std::size_t limit, std::string_view ellip
         return std::string{cut_to(text, limit)};
 
     return std::string{cut_to(text, limit - marker)} + std::string{ellipsis};
+}
+
+
+namespace
+{
+
+// The six levels an xterm 6x6x6 cube axis takes.
+constexpr std::array<int, 6> cube_levels{0, 95, 135, 175, 215, 255};
+
+// The first index of the cube, and of the grey ramp above it.
+constexpr int cube_base = 16;
+constexpr int grey_base = 232;
+constexpr int grey_steps = 24;
+constexpr int grey_first = 8;
+constexpr int grey_stride = 10;
+
+// The sixteen ANSI colors as xterm renders them.
+constexpr std::array<rgb, 16> ansi_palette{
+    rgb{0, 0, 0},       rgb{205, 0, 0},   rgb{0, 205, 0},   rgb{205, 205, 0},
+    rgb{0, 0, 238},     rgb{205, 0, 205}, rgb{0, 205, 205}, rgb{229, 229, 229},
+    rgb{127, 127, 127}, rgb{255, 0, 0},   rgb{0, 255, 0},   rgb{255, 255, 0},
+    rgb{92, 92, 255},   rgb{255, 0, 255}, rgb{0, 255, 255}, rgb{255, 255, 255},
+};
+
+// Where the sixteen split into the 30-37 and 90-97 halves.
+constexpr std::uint8_t bright_first = 8;
+
+constexpr int foreground_dim = 30;
+constexpr int foreground_bright = 90;
+constexpr int background_dim = 40;
+constexpr int background_bright = 100;
+
+[[nodiscard]] constexpr int channel(rgb color, std::size_t which) noexcept
+{
+    switch (which)
+    {
+        case 0:
+            return color.red;
+        case 1:
+            return color.green;
+        default:
+            return color.blue;
+    }
+}
+
+[[nodiscard]] constexpr int squared_distance(rgb left, rgb right) noexcept
+{
+    int total = 0;
+    for (std::size_t axis = 0; axis < 3; ++axis)
+    {
+        int const gap = channel(left, axis) - channel(right, axis);
+        total += gap * gap;
+    }
+    return total;
+}
+
+// The cube axis whose level is nearest to one channel.
+[[nodiscard]] constexpr int nearest_level(int value) noexcept
+{
+    int best = 0;
+    int closest = std::numeric_limits<int>::max();
+
+    for (int step = 0; step < static_cast<int>(cube_levels.size()); ++step)
+    {
+        int const gap = std::abs(cube_levels[static_cast<std::size_t>(step)] - value);
+        if (gap < closest)
+        {
+            closest = gap;
+            best = step;
+        }
+    }
+
+    return best;
+}
+
+[[nodiscard]] constexpr rgb level_color(int red, int green, int blue) noexcept
+{
+    return {
+        static_cast<std::uint8_t>(cube_levels[static_cast<std::size_t>(red)]),
+        static_cast<std::uint8_t>(cube_levels[static_cast<std::size_t>(green)]),
+        static_cast<std::uint8_t>(cube_levels[static_cast<std::size_t>(blue)]),
+    };
+}
+
+// The escape parameters that set one color, e.g. "38;2;1;2;3".
+[[nodiscard]] std::string color_parameters(color_depth depth, rgb color, bool background)
+{
+    switch (depth)
+    {
+        case color_depth::truecolor:
+            return std::format(
+                "{};2;{};{};{}", background ? 48 : 38, color.red, color.green, color.blue
+            );
+
+        case color_depth::indexed_256:
+            return std::format("{};5;{}", background ? 48 : 38, index_256(color));
+
+        case color_depth::ansi16:
+        {
+            auto const slot = index_16(color);
+            int const base = slot < bright_first
+                                 ? (background ? background_dim : foreground_dim)
+                                 : (background ? background_bright : foreground_bright);
+            int const offset = slot < bright_first ? slot : slot - bright_first;
+            return std::format("{}", base + offset);
+        }
+
+        case color_depth::none:
+            break;
+    }
+
+    return {};
+}
+
+}  // namespace
+
+std::uint8_t index_256(rgb color) noexcept
+{
+    auto const red = nearest_level(color.red);
+    auto const green = nearest_level(color.green);
+    auto const blue = nearest_level(color.blue);
+
+    auto const from_cube = level_color(red, green, blue);
+    auto const cube_index = static_cast<std::uint8_t>(cube_base + (36 * red) + (6 * green) + blue);
+    auto const cube_gap = squared_distance(color, from_cube);
+
+    // The grey nearest a color is the one nearest its mean channel: the other
+    // two terms of the distance do not depend on which grey we pick.
+    auto const mean = (color.red + color.green + color.blue) / 3;
+    auto step = (mean - grey_first + (grey_stride / 2)) / grey_stride;
+    step = std::clamp(step, 0, grey_steps - 1);
+
+    auto const grey = static_cast<std::uint8_t>(grey_first + (grey_stride * step));
+    auto const grey_gap = squared_distance(color, rgb{grey, grey, grey});
+
+    return grey_gap < cube_gap ? static_cast<std::uint8_t>(grey_base + step) : cube_index;
+}
+
+std::uint8_t index_16(rgb color) noexcept
+{
+    std::uint8_t best = 0;
+    int closest = std::numeric_limits<int>::max();
+
+    for (std::size_t slot = 0; slot < ansi_palette.size(); ++slot)
+    {
+        int const gap = squared_distance(color, ansi_palette[slot]);
+        if (gap < closest)
+        {
+            closest = gap;
+            best = static_cast<std::uint8_t>(slot);
+        }
+    }
+
+    return best;
+}
+
+void sgr_writer::paint(std::string& out, rgb foreground, rgb background)
+{
+    if (depth_ == color_depth::none)
+        return;
+
+    std::string parameters;
+
+    if (foreground_ != foreground)
+    {
+        parameters = color_parameters(depth_, foreground, /*background=*/false);
+        foreground_ = foreground;
+    }
+
+    if (background_ != background)
+    {
+        if (!parameters.empty())
+            parameters += ';';
+
+        parameters += color_parameters(depth_, background, /*background=*/true);
+        background_ = background;
+    }
+
+    if (parameters.empty())
+        return;
+
+    out += sgr_escape;
+    out += '[';
+    out += parameters;
+    out += 'm';
+}
+
+void sgr_writer::clear(std::string& out)
+{
+    if (!foreground_.has_value() && !background_.has_value())
+        return;
+
+    foreground_.reset();
+    background_.reset();
+
+    out += "\033[0m";
 }
 
 }  // namespace cartomancer::cli

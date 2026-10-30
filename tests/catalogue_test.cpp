@@ -154,5 +154,48 @@ TEST_CASE("the flag --explain --format json has the explanation", "[catalogue]")
 
     REQUIRE(result.status == 0);
     REQUIRE(result.out.contains("\"explanation\""));
-    REQUIRE(result.out.contains("\"spec_ref\""));
+    REQUIRE(result.out.contains("\"spec_refs\""));
+}
+
+TEST_CASE("the flag --explain cites every section as a pinned URL", "[catalogue]")
+{
+    // A rule that cites at least two sections, so the continuation lines are
+    // exercised too. Every catalogue entry carries citations; take the first
+    // multi-section one rather than assuming which.
+    auto const& catalogue = arcana::rules();
+    auto const found =
+        std::ranges::find_if(catalogue, [](auto const& rule) { return rule.spec_refs.size() > 1; });
+    REQUIRE(found != catalogue.end());
+
+    auto const result = run_cli({"--explain", found->code});
+
+    REQUIRE(result.status == 0);
+
+    for (auto const& section : found->spec_refs)
+    {
+        auto const url = arcana::spec_url(section);
+        REQUIRE_FALSE(url.empty());
+        REQUIRE(result.out.contains(url));
+    }
+
+    // Only the first line carries the label; the rest are aligned under it.
+    REQUIRE(
+        line_containing(result.out, arcana::spec_url(found->spec_refs.front())).starts_with("spec:")
+    );
+    REQUIRE(
+        line_containing(result.out, arcana::spec_url(found->spec_refs.back())).starts_with("  ")
+    );
+}
+
+TEST_CASE("the flag --explain --format json carries anchors and their URLs", "[catalogue]")
+{
+    auto const& first = arcana::rules().front();
+    REQUIRE_FALSE(first.spec_refs.empty());
+
+    auto const result = run_cli({"--explain", first.code, "--format", "json"});
+
+    REQUIRE(result.status == 0);
+    REQUIRE(result.out.contains("\"anchor\""));
+    REQUIRE(result.out.contains(first.spec_refs.front().anchor));
+    REQUIRE(result.out.contains(arcana::spec_url(first.spec_refs.front())));
 }
