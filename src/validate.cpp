@@ -11,7 +11,6 @@
 #include <expected>
 #include <filesystem>
 #include <format>
-#include <memory>
 #include <ostream>
 #include <string>
 #include <string_view>
@@ -24,7 +23,7 @@ namespace
 
 namespace fs = std::filesystem;
 
-using loaded_deck = std::expected<std::shared_ptr<arcana::deck const>, arcana::error>;
+using loaded_deck = std::expected<arcana::deck, arcana::error>;
 
 struct resolution
 {
@@ -171,7 +170,7 @@ void write_text(
 
     // The deck's own name when it has one
     std::string_view const named =
-        subject.metadata.name.empty() ? target : std::string_view{subject.metadata.name};
+        subject.metadata().name.empty() ? target : std::string_view{subject.metadata().name};
 
     if (reported.empty())
     {
@@ -252,9 +251,9 @@ void write_json(
 
     if (outcome.has_value())
     {
-        auto const& subject = **outcome;
-        deck_identifier = subject.metadata.identifier;
-        schema_version = subject.metadata.schema_version;
+        auto const& subject = *outcome;
+        deck_identifier = subject.metadata().identifier;
+        schema_version = subject.metadata().schema_version;
     }
     else
     {
@@ -331,7 +330,7 @@ cli::exit_code run_validate(
         return cli::exit_code::unloadable;
     }
 
-    auto const& subject = **what.deck;
+    auto const& subject = *what.deck;
     auto const found = arcana::validate(subject);
     auto const reported = apply_floor(found, opts.level);
 

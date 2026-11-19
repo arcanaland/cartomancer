@@ -10,7 +10,7 @@ class CartomancerConan(ConanFile):
     version = "0.3.0"
     settings = "os", "compiler", "build_type", "arch"
 
-    # TODO: add arcana here when we package it as a conan package
+    # arcana is pinned by ARCANA_VERSION and is not a Conan requirement
     requires = "nlohmann_json/3.12.0"
     test_requires = "catch2/3.15.2"
 

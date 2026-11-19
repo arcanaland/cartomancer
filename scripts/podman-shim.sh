@@ -7,7 +7,7 @@ set -euo pipefail
 image="${CARTOMANCER_IMAGE:-cartomancer-builder}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# TODO: replace when we get conan set up
+# The staged prefix is checked against ARCANA_VERSION by find_package(EXACT).
 arcana_prefix="${ARCANA_PREFIX:-$root/../libarcana/build/RelWithDebInfo/stage/usr/local}"
 
 if [ ! -d "$arcana_prefix/lib/cmake/arcana" ]; then

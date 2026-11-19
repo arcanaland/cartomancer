@@ -24,7 +24,7 @@ build-image:
 
 # Conan and cmake
 [script]
-configure:
+configure unpinned="OFF":
     conan profile path default >/dev/null 2>&1 || conan profile detect
 
     conan install . --build=missing \
@@ -33,11 +33,17 @@ configure:
 
     cmake --preset {{preset}} \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DCMAKE_PREFIX_PATH={{arcana_prefix}}
+        -DCMAKE_PREFIX_PATH={{arcana_prefix}} \
+        -DCARTOMANCER_ARCANA_UNPINNED={{unpinned}}
 
 # Full CMake build.
 [script]
 build: configure
+    cmake --build --preset {{preset}}
+
+# Build against whatever arcana is staged, ignoring ARCANA_VERSION. Co-development only.
+[script]
+build-unpinned: (configure "ON")
     cmake --build --preset {{preset}}
 
 # Run the test suite.

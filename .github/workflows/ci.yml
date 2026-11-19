@@ -24,9 +24,13 @@ jobs:
         with:
           path: cartomancer
 
+      - name: Read the arcana pin
+        run: echo "ARCANA_VERSION=$(head -n 1 cartomancer/ARCANA_VERSION)" >> "$GITHUB_ENV"
+
       - uses: actions/checkout@v4
         with:
           repository: arcanaland/libarcana
+          ref: v${{ env.ARCANA_VERSION }}
           path: libarcana
 
       - uses: extractions/setup-just@v2
@@ -44,7 +48,7 @@ jobs:
           restore-keys: |
             conan-
 
-      # TODO: replace this with conan package for arcana once it lands
+      # ARCANA_VERSION picks the libarcana tag staged here
       - name: Stage the arcana install prefix
         working-directory: libarcana
         run: |

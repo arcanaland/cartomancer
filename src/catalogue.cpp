@@ -72,6 +72,23 @@ struct columns
     return padded;
 }
 
+// Every section the rule cites, each with its URL at the pinned revision.
+[[nodiscard]] json::document spec_refs_json(arcana::rule const& entry)
+{
+    auto refs = json::document::array();
+
+    for (auto const& section : entry.citations())
+        refs.push_back(
+            json::document{
+                {"schema_major", section.schema_major},
+                {"anchor", json::from_view(section.anchor)},
+                {"url", arcana::spec_url(section)},
+            }
+        );
+
+    return refs;
+}
+
 [[nodiscard]] json::document rule_json(arcana::rule const& entry)
 {
     return json::document{
@@ -80,7 +97,7 @@ struct columns
         {"default_level", json::from_view(cli::severity_name(entry.default_level))},
         {"area", json::from_view(entry.area)},
         {"needs", json::from_view(phase_name(entry.needs))},
-        {"spec_ref", json::from_view(entry.spec_ref)},
+        {"spec_refs", spec_refs_json(entry)},
         {"applies_to", applies_to(entry)},
         {"experimental", entry.experimental},
     };
@@ -182,7 +199,21 @@ cli::exit_code run_explain(cli::options const& opts, std::string_view code, cli:
     field("state:        ", state_name(*entry));
     field("area:         ", entry->area);
     field("needs:        ", phase_name(entry->needs));
-    field("spec:         ", entry->spec_ref);
+
+    // One section per line, continuations aligned under the first. A major
+    // with no pin has no URL, so name the section instead.
+    bool first = true;
+    for (auto const& section : entry->citations())
+    {
+        auto const url = arcana::spec_url(section);
+
+        field(
+            first ? "spec:         " : "              ",
+            url.empty() ? std::format("v{} {}", section.schema_major, section.anchor) : url
+        );
+        first = false;
+    }
+
     field("schema:       ", applies_to(*entry));
     if (entry->experimental)
         field("experimental: ", "yes");
