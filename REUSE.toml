@@ -6,6 +6,7 @@ SPDX-PackageDownloadLocation = "https://github.com/arcanaland/cartomancer"
 [[annotations]]
 path = [
   ".clang-format",
+  "ARCANA_VERSION",
   ".clang-tidy",
   ".gitignore",
   "conan.lock",

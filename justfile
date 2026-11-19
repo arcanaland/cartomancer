@@ -10,9 +10,6 @@ build_type := "RelWithDebInfo"
 build_dir := build_root / build_type
 preset := "conan-" + lowercase(build_type)
 
-# Where scripts/podman-shim.sh mounts libarcana's staged install prefix.
-arcana_prefix := "/opt/arcana"
-
 export CARTOMANCER_IMAGE := image
 
 default:
@@ -33,7 +30,7 @@ configure:
 
     cmake --preset {{preset}} \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DCMAKE_PREFIX_PATH={{arcana_prefix}}
+        -DFETCHCONTENT_SOURCE_DIR_ARCANA="${CARTOMANCER_ARCANA_SOURCE:-}"
 
 # Full CMake build.
 [script]

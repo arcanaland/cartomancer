@@ -24,16 +24,10 @@ jobs:
         with:
           path: cartomancer
 
-      - uses: actions/checkout@v4
-        with:
-          repository: arcanaland/libarcana
-          path: libarcana
-
       - uses: extractions/setup-just@v2
 
       - name: Create conan volumes
         run: |
-          podman volume create libarcana-conan
           podman volume create cartomancer-conan
 
       - name: Cache conan store
@@ -43,13 +37,6 @@ jobs:
           key: conan-${{ hashFiles('cartomancer/conanfile.py') }}
           restore-keys: |
             conan-
-
-      # TODO: replace this with conan package for arcana once it lands
-      - name: Stage the arcana install prefix
-        working-directory: libarcana
-        run: |
-          just build-image
-          just install
 
       - name: Build image
         working-directory: cartomancer
