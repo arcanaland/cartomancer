@@ -10,9 +10,6 @@ build_type := "RelWithDebInfo"
 build_dir := build_root / build_type
 preset := "conan-" + lowercase(build_type)
 
-# Where scripts/podman-shim.sh mounts libarcana's staged install prefix.
-arcana_prefix := "/opt/arcana"
-
 export CARTOMANCER_IMAGE := image
 
 default:
@@ -24,7 +21,7 @@ build-image:
 
 # Conan and cmake
 [script]
-configure unpinned="OFF":
+configure:
     conan profile path default >/dev/null 2>&1 || conan profile detect
 
     conan install . --build=missing \
@@ -33,17 +30,11 @@ configure unpinned="OFF":
 
     cmake --preset {{preset}} \
         -DCMAKE_EXPORT_COMPILE_COMMANDS=ON \
-        -DCMAKE_PREFIX_PATH={{arcana_prefix}} \
-        -DCARTOMANCER_ARCANA_UNPINNED={{unpinned}}
+        -DFETCHCONTENT_SOURCE_DIR_ARCANA="${CARTOMANCER_ARCANA_SOURCE:-}"
 
 # Full CMake build.
 [script]
 build: configure
-    cmake --build --preset {{preset}}
-
-# Build against whatever arcana is staged, ignoring ARCANA_VERSION. Co-development only.
-[script]
-build-unpinned: (configure "ON")
     cmake --build --preset {{preset}}
 
 # Run the test suite.

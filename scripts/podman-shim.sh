@@ -7,15 +7,16 @@ set -euo pipefail
 image="${CARTOMANCER_IMAGE:-cartomancer-builder}"
 root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
-# The staged prefix is checked against ARCANA_VERSION by find_package(EXACT).
-arcana_prefix="${ARCANA_PREFIX:-$root/../libarcana/build/RelWithDebInfo/stage/usr/local}"
-
-if [ ! -d "$arcana_prefix/lib/cmake/arcana" ]; then
-  echo "no arcana install prefix at: $arcana_prefix" >&2
-  exit 1
+# ARCANA_SOURCE builds against a local libarcana checkout instead of the pinned tag
+arcana_mount=()
+if [ -n "${ARCANA_SOURCE:-}" ]; then
+  if [ ! -f "$ARCANA_SOURCE/CMakeLists.txt" ]; then
+    echo "ARCANA_SOURCE is not a libarcana checkout: $ARCANA_SOURCE" >&2
+    exit 1
+  fi
+  arcana_mount=(-v "$(cd "$ARCANA_SOURCE" && pwd):/opt/arcana-src:ro,z"
+    -e CARTOMANCER_ARCANA_SOURCE=/opt/arcana-src)
 fi
-
-arcana_prefix="$(cd "$arcana_prefix" && pwd)"
 
 # this is a file that `just` creates from the recipe body and passes to us.
 script="$(cd "$(dirname "$1")" && pwd)/$(basename "$1")"
@@ -26,7 +27,7 @@ tty_flag=()
 
 exec podman run --rm -i "${tty_flag[@]}" \
   -v "$root:/src:Z" \
-  -v "$arcana_prefix:/opt/arcana:ro,z" \
+  "${arcana_mount[@]}" \
   -v cartomancer-conan:/root/.conan2 \
   -v "$script:/tmp/recipe.sh:ro,z" \
   -w /src \

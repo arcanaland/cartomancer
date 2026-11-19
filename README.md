@@ -19,4 +19,6 @@ Decks are read from `$XDG_DATA_HOME/tarot/decks/`.
 $ just build-image
 $ just build
 $ just test
+# with local libs
+$ ARCANA_SOURCE=../libarcana just build
 ```

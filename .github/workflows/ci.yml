@@ -24,20 +24,10 @@ jobs:
         with:
           path: cartomancer
 
-      - name: Read the arcana pin
-        run: echo "ARCANA_VERSION=$(head -n 1 cartomancer/ARCANA_VERSION)" >> "$GITHUB_ENV"
-
-      - uses: actions/checkout@v4
-        with:
-          repository: arcanaland/libarcana
-          ref: v${{ env.ARCANA_VERSION }}
-          path: libarcana
-
       - uses: extractions/setup-just@v2
 
       - name: Create conan volumes
         run: |
-          podman volume create libarcana-conan
           podman volume create cartomancer-conan
 
       - name: Cache conan store
@@ -47,13 +37,6 @@ jobs:
           key: conan-${{ hashFiles('cartomancer/conanfile.py') }}
           restore-keys: |
             conan-
-
-      # ARCANA_VERSION picks the libarcana tag staged here
-      - name: Stage the arcana install prefix
-        working-directory: libarcana
-        run: |
-          just build-image
-          just install
 
       - name: Build image
         working-directory: cartomancer
